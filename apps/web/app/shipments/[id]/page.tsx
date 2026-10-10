@@ -69,6 +69,22 @@ export default async function ShipmentPage({
         <h1 className="font-mono text-2xl font-semibold">{shipment.order.sourceOrderNumber}</h1>
         <StatusBadge status={shipment.status} />
         {shipment.stuckSince && <StuckBadge />}
+        <span className="ml-auto flex gap-3 text-sm">
+          <Link
+            href={`/shipments/${id}/print?doc=slip`}
+            prefetch={false}
+            className="text-zinc-600 underline"
+          >
+            Packing slip
+          </Link>
+          <Link
+            href={`/shipments/${id}/print?doc=label`}
+            prefetch={false}
+            className="text-zinc-600 underline"
+          >
+            Label
+          </Link>
+        </span>
       </header>
       <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
         <Customer

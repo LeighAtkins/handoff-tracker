@@ -21,7 +21,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen bg-zinc-50 text-zinc-900 antialiased">
-        <header className="border-b border-zinc-200 bg-white">
+        <header className="border-b border-zinc-200 bg-white print:hidden">
           <nav className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3 text-sm">
             <Link href="/" className="font-semibold">
               Handoff Tracker
@@ -57,7 +57,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             )}
           </nav>
         </header>
-        <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+        <main className="mx-auto max-w-6xl px-6 py-8 print:max-w-none print:p-0">{children}</main>
       </body>
     </html>
   );

@@ -54,6 +54,9 @@ importers:
       arctic:
         specifier: ^3.7.0
         version: 3.7.0
+      bwip-js:
+        specifier: ^4.11.4
+        version: 4.11.4
       dotenv:
         specifier: ^18.0.7
         version: 18.0.7
@@ -1343,6 +1346,10 @@ packages:
   brace-expansion@5.0.12:
     resolution: {integrity: sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==}
     engines: {node: 20 || >=22}
+
+  bwip-js@4.11.4:
+    resolution: {integrity: sha512-FOXnOQkinxog8FwxdnPB+8k2wRqwPnqXwxX37KcXOtMNW+9CinOkGv9MtIoRC4HX/UyogT0/9lIp6FDm2DcquQ==}
+    hasBin: true
 
   c12@3.3.4:
     resolution: {integrity: sha512-cM0ApFQSBXuourJejzwv/AuPRvAxordTyParRVcHjjtXirtkzM0uK2L9TTn9s0cXZbG7E55jCivRQzoxYmRAlA==}
@@ -3342,6 +3349,8 @@ snapshots:
   brace-expansion@5.0.12:
     dependencies:
       balanced-match: 4.0.4
+
+  bwip-js@4.11.4: {}
 
   c12@3.3.4(magicast@0.5.5):
     dependencies:

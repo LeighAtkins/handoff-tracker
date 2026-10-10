@@ -5,3 +5,4 @@ export * from "./tracking";
 export * from "./users";
 export * from "./privacy";
 export * from "./metrics";
+export * from "./documents";

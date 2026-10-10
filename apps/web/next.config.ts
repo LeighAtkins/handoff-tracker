@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   transpilePackages: ["@handoff/domain", "@handoff/db", "@handoff/carriers"],
-  serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg", "pg"],
+  serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg", "pg", "bwip-js"],
   experimental: {
     // CSV uploads go through a Server Action; 5 MB covers ~5000 rows with room for multipart overhead.
     serverActions: { bodySizeLimit: "6mb" },
