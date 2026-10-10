@@ -40,7 +40,7 @@ test("an operator adds a manual event and sees it in the timeline and audit log"
 
   await page.getByRole("link", { name: "Audit" }).click();
   await expect(page.getByRole("row").filter({ hasText: "MANUAL_EVENT_ADDED" })).toContainText(
-    "dev@localhost",
+    "operator@example.com",
   );
 });
 

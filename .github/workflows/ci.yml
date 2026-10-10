@@ -76,6 +76,9 @@ jobs:
       - run: pnpm --filter @handoff/e2e test:e2e
         env:
           CI: "true"
+          # Test-only: the developer login is limited to localhost and never enabled when deployed.
+          AUTH_DEV_LOGIN: "true"
+          AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
 
       - uses: actions/upload-artifact@v4
         if: failure()

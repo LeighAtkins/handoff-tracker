@@ -239,7 +239,6 @@ async function main() {
     prisma.importBatch.deleteMany(),
     prisma.order.deleteMany(), // cascades to shipments, legs, handoffs, events
     prisma.carrier.deleteMany(),
-    prisma.user.deleteMany(),
   ]);
 
   await prisma.carrier.createMany({
@@ -249,13 +248,14 @@ async function main() {
     ],
   });
 
-  await prisma.user.createMany({
-    data: [
-      { email: "admin@example.com", role: "ADMIN" },
-      { email: "operator@example.com", role: "OPERATOR" },
-      { email: "viewer@example.com", role: "VIEWER" },
-    ],
-  });
+  // Users are upserted, not recreated, so existing sessions survive a reseed.
+  for (const [email, role] of [
+    ["admin@example.com", "ADMIN"],
+    ["operator@example.com", "OPERATOR"],
+    ["viewer@example.com", "VIEWER"],
+  ] as const) {
+    await prisma.user.upsert({ where: { email }, create: { email, role }, update: { role } });
+  }
 
   const now = Date.now();
   let orderNumber = 10001;

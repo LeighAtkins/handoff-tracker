@@ -8,6 +8,7 @@ import * as app from "@handoff/app";
 import { getPrisma } from "@handoff/db";
 import { DomainError } from "@handoff/domain";
 import { getActor } from "@/lib/actor";
+import { NotAllowedError } from "@/lib/auth/session";
 
 type ActionState = { ok: boolean; message: string } | null;
 
@@ -21,15 +22,13 @@ export async function uploadImportAction(_: ActionState, formData: FormData): Pr
 
   let batchId: string;
   try {
+    const actor = await getActor();
     const parsed = await app.parseImportCsv(Readable.fromWeb(file.stream() as NodeReadableStream));
-    const batch = await app.createImportBatch(
-      getPrisma(),
-      { fileName: file.name, parsed },
-      await getActor(),
-    );
+    const batch = await app.createImportBatch(getPrisma(), { fileName: file.name, parsed }, actor);
     batchId = batch.id;
   } catch (error) {
-    if (error instanceof app.CsvFormatError) return { ok: false, message: error.message };
+    if (error instanceof app.CsvFormatError || error instanceof NotAllowedError)
+      return { ok: false, message: error.message };
     if (error instanceof Error && error.name === "CsvError")
       return { ok: false, message: `Could not read the CSV: ${error.message}` };
     throw error;
@@ -45,7 +44,8 @@ export async function confirmImportAction(
   try {
     await app.confirmImport(getPrisma(), batchId, await getActor());
   } catch (error) {
-    if (error instanceof DomainError) return { ok: false, message: error.message };
+    if (error instanceof DomainError || error instanceof NotAllowedError)
+      return { ok: false, message: error.message };
     throw error;
   }
   revalidatePath(`/import/${batchId}`);
@@ -58,7 +58,8 @@ export async function cancelImportAction(_: ActionState, formData: FormData): Pr
   try {
     await app.cancelImport(getPrisma(), batchId, await getActor());
   } catch (error) {
-    if (error instanceof DomainError) return { ok: false, message: error.message };
+    if (error instanceof DomainError || error instanceof NotAllowedError)
+      return { ok: false, message: error.message };
     throw error;
   }
   revalidatePath(`/import/${batchId}`);

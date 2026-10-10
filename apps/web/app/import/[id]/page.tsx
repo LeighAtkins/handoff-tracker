@@ -7,6 +7,7 @@ import {
   type ImportSummary,
   type RowError,
 } from "@handoff/app";
+import { requireUser } from "@/lib/auth/session";
 import { getPrisma } from "@handoff/db";
 import { ActionForm } from "@/components/action-form";
 import { cancelImportAction, confirmImportAction } from "../actions";
@@ -17,6 +18,7 @@ export const dynamic = "force-dynamic";
 const PREVIEW_ROWS = 20;
 
 export default async function ImportPreviewPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireUser("OPERATOR");
   const { id } = await params;
   const prisma = getPrisma();
   const batch = await prisma.importBatch.findUnique({ where: { id } });
