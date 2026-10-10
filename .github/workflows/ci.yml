@@ -144,3 +144,5 @@ jobs:
           helm lint infra/helm/handoff-tracker --set secrets.existingSecret=handoff-secrets
           helm template t infra/helm/handoff-tracker -f infra/helm/handoff-tracker/values-kind.yaml > /dev/null
           helm template t infra/helm/handoff-tracker --set secrets.existingSecret=handoff-secrets > /dev/null
+      - name: Shell scripts parse (CKA lab, kind scripts)
+        run: for f in cka/*.sh cka/tasks/*/*.sh scripts/*.sh; do bash -n "$f" || exit 1; done

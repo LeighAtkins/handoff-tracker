@@ -1,0 +1,34 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: carrierroutes.handoff.dev
+spec:
+  group: handoff.dev
+  scope: Namespaced
+  names:
+    plural: carrierroutes
+    singular: carrierroute
+    kind: CarrierRoute
+    shortNames: [crt]
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      additionalPrinterColumns:
+        - { name: From, type: string, jsonPath: .spec.from }
+        - { name: To, type: string, jsonPath: .spec.to }
+        - { name: Quiet-Hours, type: integer, jsonPath: .spec.quietHoursAfterHandoff }
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [from, to]
+              properties:
+                from: { type: string, description: Carrier code that hands the parcel over }
+                to: { type: string, description: Carrier code that receives it }
+                quietHoursAfterHandoff:
+                  type: integer
+                  minimum: 1
+                  description: Hours without news after the handoff before a shipment counts as stuck

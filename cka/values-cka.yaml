@@ -1,0 +1,18 @@
+# Handoff Tracker on the CKA practice cluster. Fake data only.
+image:
+  web: { repository: handoff-web, tag: kind, pullPolicy: Never }
+  worker: { repository: handoff-worker, tag: kind, pullPolicy: Never }
+config:
+  appUrl: http://localhost:8097
+  authDevLogin: true
+secrets:
+  authSecret: cka-lab-only-secret-not-for-anything-real-0123456789
+web:
+  replicas: 2
+  # Off so the autoscaling task can create one.
+  hpa: { enabled: false }
+  service: { type: NodePort, port: 80, nodePort: 30095 }
+seed:
+  enabled: true
+postgres:
+  enabled: true
