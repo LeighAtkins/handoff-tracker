@@ -1,5 +1,6 @@
 import { createShipment, DomainError } from "@handoff/domain";
-import { refreshShipment, type PrismaClient } from "@handoff/db";
+import type { PrismaClient } from "@handoff/db";
+import { refresh } from "../refresh";
 import { writeAudit, type Actor } from "../audit";
 import type { ImportRow, ParsedImport, RowError } from "./parse";
 
@@ -138,7 +139,7 @@ export async function confirmImport(
             },
           },
         });
-        await refreshShipment(tx, shipment.id, now);
+        await refresh(tx, shipment.id, now, actor);
         summary.shipmentsCreated++;
       }
 

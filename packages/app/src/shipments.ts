@@ -8,6 +8,7 @@ import {
   type Status,
 } from "@handoff/domain";
 import { loadShipment, refreshShipment, type PrismaClient, type Prisma } from "@handoff/db";
+import { refresh } from "./refresh";
 import { writeAudit, type Actor } from "./audit";
 
 type Tx = Prisma.TransactionClient;
@@ -67,7 +68,7 @@ export async function addManualEvent(
         source: "MANUAL",
       },
     });
-    const refreshed = await refreshShipment(tx, input.shipmentId, now);
+    const refreshed = await refresh(tx, input.shipmentId, now, actor);
     await writeAudit(tx, {
       entityType: "Shipment",
       entityId: input.shipmentId,
@@ -128,7 +129,7 @@ export async function overrideStatus(
         overrideAt: now,
       },
     });
-    const refreshed = await refreshShipment(tx, input.shipmentId, now);
+    const refreshed = await refresh(tx, input.shipmentId, now, actor);
     await writeAudit(tx, {
       entityType: "Shipment",
       entityId: input.shipmentId,
@@ -154,7 +155,7 @@ export async function clearOverride(
       where: { id: input.shipmentId },
       data: { overrideStatus: null, overrideReason: null, overrideBy: null, overrideAt: null },
     });
-    const refreshed = await refreshShipment(tx, input.shipmentId, now);
+    const refreshed = await refresh(tx, input.shipmentId, now, actor);
     await writeAudit(tx, {
       entityType: "Shipment",
       entityId: input.shipmentId,
@@ -178,7 +179,7 @@ export async function markResolved(
     const { row, state } = await mustLoad(tx, input.shipmentId);
     markResolvedRule(state, now);
     await tx.shipment.update({ where: { id: input.shipmentId }, data: { stuckResolvedAt: now } });
-    const refreshed = await refreshShipment(tx, input.shipmentId, now);
+    const refreshed = await refresh(tx, input.shipmentId, now, actor);
     await writeAudit(tx, {
       entityType: "Shipment",
       entityId: input.shipmentId,
@@ -238,7 +239,7 @@ export async function recordHandoffInTx(tx: Tx, input: HandoffInput, actor: Acto
       source: input.source,
     },
   });
-  const refreshed = await refreshShipment(tx, input.shipmentId, now);
+  const refreshed = await refresh(tx, input.shipmentId, now, actor);
   await writeAudit(tx, {
     entityType: "Shipment",
     entityId: input.shipmentId,

@@ -13,6 +13,7 @@ const NAV = [
   { href: "/stuck", label: "Stuck" },
   { href: "/shipments", label: "Shipments" },
   { href: "/import", label: "Import" },
+  { href: "/metrics", label: "Metrics" },
 ];
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
