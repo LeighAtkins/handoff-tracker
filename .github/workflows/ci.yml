@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # Only used by prisma generate/config; no database is needed for these checks.
+      DATABASE_URL: postgresql://handoff:handoff@localhost:5432/handoff
+    steps:
+      - uses: actions/checkout@v4
+
+      # P3: fail if anything under /data is tracked.
+      - name: No real data committed
+        run: |
+          if git ls-files --error-unmatch data >/dev/null 2>&1; then
+            echo "Files under /data are tracked. Real customer data must never be committed."
+            exit 1
+          fi
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
