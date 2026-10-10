@@ -11,12 +11,14 @@ export function ActionForm({
   children,
   variant = "primary",
   testId,
+  pendingLabel = "Saving…",
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   submitLabel: string;
   children?: ReactNode;
   variant?: "primary" | "secondary";
   testId?: string;
+  pendingLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
   return (
@@ -31,7 +33,7 @@ export function ActionForm({
               : "rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm disabled:opacity-50"
           }
         >
-          {pending ? "Saving…" : submitLabel}
+          {pending ? pendingLabel : submitLabel}
         </button>
         {state && (
           <p

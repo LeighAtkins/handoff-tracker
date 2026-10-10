@@ -9,11 +9,13 @@ export function Customer({
   maskedName,
   maskedPostcode,
   country,
+  labels,
 }: {
   orderId: string;
   maskedName: string;
   maskedPostcode: string;
   country: string;
+  labels: { customer: string; destination: string; reveal: string; revealTitle: string };
 }) {
   const [state, reveal, pending] = useActionState<RevealState, FormData>(
     revealCustomerAction,
@@ -24,7 +26,7 @@ export function Customer({
   return (
     <>
       <div>
-        <dt className="text-zinc-500">Customer</dt>
+        <dt className="text-zinc-500">{labels.customer}</dt>
         <dd data-testid="customer-name">
           {revealed ? revealed.customerName : maskedName}{" "}
           {!revealed && (
@@ -33,9 +35,9 @@ export function Customer({
               <button
                 className="text-xs text-zinc-600 underline"
                 disabled={pending}
-                title="Your name is recorded in the audit log"
+                title={labels.revealTitle}
               >
-                {pending ? "…" : "reveal"}
+                {pending ? "…" : labels.reveal}
               </button>
             </form>
           )}
@@ -45,7 +47,7 @@ export function Customer({
         </dd>
       </div>
       <div>
-        <dt className="text-zinc-500">Destination</dt>
+        <dt className="text-zinc-500">{labels.destination}</dt>
         <dd>
           {country} {revealed ? revealed.destinationPostcode : maskedPostcode}
         </dd>

@@ -13,13 +13,31 @@ export function formatDateTime(date: Date | null | undefined): string {
   return date ? dateTime.format(date) : "—";
 }
 
-export function formatAgo(date: Date | null | undefined, now = new Date()): string {
-  if (!date) return "never";
+type AgoStrings = {
+  never: string;
+  minutes: (n: number) => string;
+  hours: (n: number) => string;
+  days: (n: number) => string;
+};
+
+const AGO_EN: AgoStrings = {
+  never: "never",
+  minutes: (n) => `${n}m ago`,
+  hours: (n) => `${n}h ago`,
+  days: (n) => `${n}d ago`,
+};
+
+export function formatAgo(
+  date: Date | null | undefined,
+  now = new Date(),
+  strings: AgoStrings = AGO_EN,
+): string {
+  if (!date) return strings.never;
   const minutes = Math.floor((now.getTime() - date.getTime()) / 60_000);
-  if (minutes < 60) return `${Math.max(minutes, 0)}m ago`;
+  if (minutes < 60) return strings.minutes(Math.max(minutes, 0));
   const hours = Math.floor(minutes / 60);
-  if (hours < 48) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
+  if (hours < 48) return strings.hours(hours);
+  return strings.days(Math.floor(hours / 24));
 }
 
 export const TIME_ZONE = timeZone;

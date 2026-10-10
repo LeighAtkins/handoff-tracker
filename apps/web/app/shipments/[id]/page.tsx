@@ -7,6 +7,7 @@ import { getPrisma, shipmentAggregateInclude, toShipmentState } from "@handoff/d
 import { StatusBadge, StuckBadge } from "@/components/status-badge";
 import { Timeline } from "@/components/timeline";
 import { formatDateTime } from "@/lib/format";
+import { getT } from "@/lib/i18n";
 import { hasRole } from "@handoff/app";
 import { ActionsPanel } from "./actions-panel";
 import { Customer } from "./customer";
@@ -36,6 +37,7 @@ export default async function ShipmentPage({
   searchParams: SearchParams;
 }) {
   const user = await requireUser();
+  const t = await getT();
   const { id } = await params;
   const { tab } = await searchParams;
   const shipment = await load(id);
@@ -62,7 +64,7 @@ export default async function ShipmentPage({
     <>
       <p className="text-sm">
         <Link href="/shipments" className="text-zinc-600 underline">
-          ← Shipments
+          ← {t.shipments.title}
         </Link>
       </p>
       <header className="mt-2 flex flex-wrap items-center gap-3">
@@ -75,14 +77,14 @@ export default async function ShipmentPage({
             prefetch={false}
             className="text-zinc-600 underline"
           >
-            Packing slip
+            {t.detail.slip}
           </Link>
           <Link
             href={`/shipments/${id}/print?doc=label`}
             prefetch={false}
             className="text-zinc-600 underline"
           >
-            Label
+            {t.detail.label}
           </Link>
         </span>
       </header>
@@ -92,40 +94,51 @@ export default async function ShipmentPage({
           maskedName={maskName(shipment.order.customerName)}
           maskedPostcode={maskPostcode(shipment.order.destinationPostcode)}
           country={shipment.order.destinationCountry}
+          labels={{
+            customer: t.detail.customer,
+            destination: t.detail.destination,
+            reveal: t.detail.reveal,
+            revealTitle: t.detail.revealTitle,
+          }}
         />
         <div>
-          <dt className="text-zinc-500">Last event</dt>
+          <dt className="text-zinc-500">{t.common.lastEvent}</dt>
           <dd>
-            {formatDateTime(shipment.lastEventAt)} ({quiet}d quiet)
+            {formatDateTime(shipment.lastEventAt)} ({t.detail.quiet(quiet)})
           </dd>
         </div>
         <div>
-          <dt className="text-zinc-500">Stuck since</dt>
+          <dt className="text-zinc-500">{t.detail.stuckSince}</dt>
           <dd>{formatDateTime(shipment.stuckSince)}</dd>
         </div>
       </dl>
 
       {shipment.overrideStatus && (
         <p className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
-          Status manually set to <strong>{shipment.overrideStatus.replaceAll("_", " ")}</strong> by{" "}
-          {shipment.overrideBy} on {formatDateTime(shipment.overrideAt)}: “{shipment.overrideReason}
-          ”
+          {t.detail.overrideBanner(
+            t.status[shipment.overrideStatus],
+            shipment.overrideBy ?? "",
+            formatDateTime(shipment.overrideAt),
+            shipment.overrideReason ?? "",
+          )}
         </p>
       )}
 
       <nav className="mt-6 flex gap-4 border-b border-zinc-200 text-sm">
         {[
-          { key: "timeline", label: "Timeline" },
-          { key: "audit", label: "Audit" },
-        ].map((t) => {
-          const active = (tab ?? "timeline") === t.key;
+          { key: "timeline", label: t.detail.timeline },
+          { key: "audit", label: t.detail.audit },
+        ].map((item) => {
+          const active = (tab ?? "timeline") === item.key;
           return (
             <Link
-              key={t.key}
-              href={t.key === "timeline" ? `/shipments/${id}` : `/shipments/${id}?tab=${t.key}`}
+              key={item.key}
+              href={
+                item.key === "timeline" ? `/shipments/${id}` : `/shipments/${id}?tab=${item.key}`
+              }
               className={`-mb-px border-b-2 px-1 pb-2 ${active ? "border-zinc-900 font-medium" : "border-transparent text-zinc-600"}`}
             >
-              {t.label}
+              {item.label}
             </Link>
           );
         })}
@@ -135,15 +148,15 @@ export default async function ShipmentPage({
         <div>
           {tab === "audit" ? (
             audit.length === 0 ? (
-              <p className="text-sm text-zinc-600">Nothing has changed on this shipment yet.</p>
+              <p className="text-sm text-zinc-600">{t.detail.noChanges}</p>
             ) : (
               <table className="w-full bg-white text-left text-sm shadow-sm">
                 <thead className="border-b border-zinc-200 text-zinc-500">
                   <tr>
-                    <th className="p-2 font-medium">When</th>
-                    <th className="p-2 font-medium">Who</th>
-                    <th className="p-2 font-medium">What</th>
-                    <th className="p-2 font-medium">Details</th>
+                    <th className="p-2 font-medium">{t.detail.when}</th>
+                    <th className="p-2 font-medium">{t.detail.who}</th>
+                    <th className="p-2 font-medium">{t.detail.what}</th>
+                    <th className="p-2 font-medium">{t.detail.details}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -171,8 +184,8 @@ export default async function ShipmentPage({
           ) : (
             <>
               {notes.length > 0 && (
-                <section className="mb-6" aria-label="Notes">
-                  <h2 className="mb-2 text-sm font-semibold">Notes</h2>
+                <section className="mb-6" aria-label={t.detail.notes}>
+                  <h2 className="mb-2 text-sm font-semibold">{t.detail.notes}</h2>
                   <ul className="space-y-2">
                     {notes.map((note) => (
                       <li
@@ -195,11 +208,9 @@ export default async function ShipmentPage({
           )}
         </div>
         {hasRole(user.role, "OPERATOR") ? (
-          <ActionsPanel shipment={shipment} carriers={carriers} />
+          <ActionsPanel shipment={shipment} carriers={carriers} t={t} />
         ) : (
-          <p className="text-sm text-zinc-600">
-            You have read-only access. Ask an admin for the operator role to make changes.
-          </p>
+          <p className="text-sm text-zinc-600">{t.detail.readOnly}</p>
         )}
       </div>
     </>

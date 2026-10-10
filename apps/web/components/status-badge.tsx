@@ -1,4 +1,5 @@
 import type { Status } from "@handoff/domain";
+import { getT } from "@/lib/i18n";
 
 const STYLES: Record<Status, string> = {
   PENDING: "bg-zinc-100 text-zinc-700",
@@ -11,18 +12,20 @@ const STYLES: Record<Status, string> = {
   RETURNED: "bg-zinc-200 text-zinc-800",
 };
 
-export function StatusBadge({ status }: { status: Status }) {
+export async function StatusBadge({ status }: { status: Status }) {
+  const t = await getT();
   return (
     <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${STYLES[status]}`}>
-      {status.replaceAll("_", " ")}
+      {t.status[status]}
     </span>
   );
 }
 
-export function StuckBadge() {
+export async function StuckBadge() {
+  const t = await getT();
   return (
     <span className="inline-block rounded bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white">
-      STUCK
+      {t.stuckBadge}
     </span>
   );
 }

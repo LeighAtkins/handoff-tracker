@@ -6,6 +6,7 @@ import { getPrisma, type Prisma } from "@handoff/db";
 import { LastChecked } from "@/components/last-checked";
 import { StatusBadge, StuckBadge } from "@/components/status-badge";
 import { formatAgo } from "@/lib/format";
+import { getAgo, getT } from "@/lib/i18n";
 
 export const metadata: Metadata = { title: "Shipments" };
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ type SearchParams = Promise<{ q?: string; status?: string; stuck?: string }>;
 
 export default async function ShipmentsPage({ searchParams }: { searchParams: SearchParams }) {
   await requireUser();
+  const [t, ago] = await Promise.all([getT(), getAgo()]);
   const { q = "", status = "", stuck } = await searchParams;
   const query = q.trim();
 
@@ -42,11 +44,11 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Shipments</h1>
+      <h1 className="text-2xl font-semibold">{t.shipments.title}</h1>
 
       <form className="mt-4 flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">
-          <span className="text-zinc-600">Order or tracking number</span>
+          <span className="text-zinc-600">{t.shipments.search}</span>
           <input
             name="q"
             defaultValue={query}
@@ -54,50 +56,48 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-zinc-600">Status</span>
+          <span className="text-zinc-600">{t.common.status}</span>
           <select
             name="status"
             defaultValue={status}
             className="rounded border border-zinc-300 bg-white px-2 py-1.5"
           >
-            <option value="">Any</option>
+            <option value="">{t.shipments.any}</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s.replaceAll("_", " ")}
+                {t.status[s]}
               </option>
             ))}
           </select>
         </label>
         <label className="flex items-center gap-2 py-1.5">
           <input type="checkbox" name="stuck" value="1" defaultChecked={stuck === "1"} />
-          Stuck only
+          {t.shipments.stuckOnly}
         </label>
-        <button className="rounded bg-zinc-900 px-3 py-1.5 text-white">Filter</button>
+        <button className="rounded bg-zinc-900 px-3 py-1.5 text-white">{t.shipments.filter}</button>
         <Link href="/shipments" className="py-1.5 text-zinc-600 underline">
-          Clear
+          {t.shipments.clear}
         </Link>
       </form>
 
       <p className="mt-4 text-sm text-zinc-600">
-        {shipments.length === 200
-          ? "Showing the first 200 matches"
-          : `${shipments.length} shipments`}
+        {shipments.length === 200 ? t.shipments.first200 : t.shipments.count(shipments.length)}
       </p>
 
       {shipments.length === 0 ? (
         <p className="mt-6 rounded border border-dashed border-zinc-300 bg-white p-8 text-center text-zinc-600">
-          No shipments match these filters.
+          {t.shipments.none}
         </p>
       ) : (
         <table className="mt-2 w-full border-collapse bg-white text-left text-sm shadow-sm">
           <thead className="border-b border-zinc-200 text-zinc-500">
             <tr>
-              <th className="p-2 font-medium">Order</th>
-              <th className="p-2 font-medium">Status</th>
-              <th className="p-2 font-medium">Legs</th>
-              <th className="p-2 font-medium">Current tracking number</th>
-              <th className="p-2 font-medium">Last event</th>
-              <th className="p-2 font-medium">Last checked</th>
+              <th className="p-2 font-medium">{t.common.order}</th>
+              <th className="p-2 font-medium">{t.common.status}</th>
+              <th className="p-2 font-medium">{t.shipments.legs}</th>
+              <th className="p-2 font-medium">{t.shipments.currentTracking}</th>
+              <th className="p-2 font-medium">{t.common.lastEvent}</th>
+              <th className="p-2 font-medium">{t.common.lastChecked}</th>
             </tr>
           </thead>
           <tbody>
@@ -119,7 +119,9 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
                   </td>
                   <td className="p-2">{shipment.legs.map((leg) => leg.carrierCode).join(" → ")}</td>
                   <td className="p-2 font-mono text-xs">{current?.trackingNumber}</td>
-                  <td className="p-2 text-zinc-600">{formatAgo(shipment.lastEventAt)}</td>
+                  <td className="p-2 text-zinc-600">
+                    {formatAgo(shipment.lastEventAt, undefined, ago)}
+                  </td>
                   <td className="p-2">
                     <LastChecked leg={current} />
                   </td>
