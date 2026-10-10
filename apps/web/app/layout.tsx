@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "/stuck", label: "Stuck" },
   { href: "/shipments", label: "Shipments" },
+  { href: "/import", label: "Import" },
 ];
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -236,6 +236,7 @@ const SCENARIOS: Scenario[] = [
 async function main() {
   await prisma.$transaction([
     prisma.auditEntry.deleteMany(),
+    prisma.importBatch.deleteMany(),
     prisma.order.deleteMany(), // cascades to shipments, legs, handoffs, events
     prisma.carrier.deleteMany(),
     prisma.user.deleteMany(),

@@ -9,16 +9,9 @@ export const t0 = new Date("2026-10-01T00:00:00Z");
 export const day = (n: number) => new Date(t0.getTime() + n * DAY);
 
 export async function resetDatabase() {
-  await prisma
-    .$executeRawUnsafe(
-      'TRUNCATE "AuditEntry", "TrackingEvent", "Handoff", "Leg", "Shipment", "Order", "Carrier", "User", "ImportBatch" CASCADE',
-    )
-    .catch(async () => {
-      // ImportBatch arrives in Phase 2; tolerate its absence on older schemas.
-      await prisma.$executeRawUnsafe(
-        'TRUNCATE "AuditEntry", "TrackingEvent", "Handoff", "Leg", "Shipment", "Order", "Carrier", "User" CASCADE',
-      );
-    });
+  await prisma.$executeRawUnsafe(
+    'TRUNCATE "AuditEntry", "TrackingEvent", "Handoff", "Leg", "Shipment", "Order", "Carrier", "User", "ImportBatch" CASCADE',
+  );
   await prisma.carrier.createMany({
     data: [
       { code: "4PX", name: "4PX Express", adapter: "fake" },
