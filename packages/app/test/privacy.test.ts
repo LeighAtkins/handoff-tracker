@@ -29,3 +29,25 @@ describe("revealCustomer", () => {
     );
   });
 });
+
+describe("loadDocument", () => {
+  it("returns what a slip or label needs and audits the print", async () => {
+    const { loadDocument } = await import("../src");
+    const shipmentId = await createShipment();
+    const doc = await loadDocument(prisma, { shipmentId, type: "label" }, "op@example.com");
+    expect(doc).toMatchObject({
+      customerName: "Test Customer",
+      destination: { country: "JP", postcode: "100-0001" },
+    });
+    expect(doc.current.carrier).toBe("4PX Express");
+    expect(
+      await prisma.auditEntry.findFirst({ where: { action: "DOCUMENT_PRINTED" } }),
+    ).toMatchObject({
+      actor: "op@example.com",
+      after: { document: "label", shipmentId },
+    });
+    await expect(loadDocument(prisma, { shipmentId: "nope", type: "slip" }, "x")).rejects.toThrow(
+      "not found",
+    );
+  });
+});
