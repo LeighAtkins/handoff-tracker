@@ -2,3 +2,5 @@ pnpm-lock.yaml
 **/src/generated/**
 .next
 .turbo
+# Go templates, not YAML
+infra/helm/**/templates/

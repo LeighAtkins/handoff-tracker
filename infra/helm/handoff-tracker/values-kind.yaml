@@ -1,0 +1,22 @@
+# Local kind cluster (scripts/kind-up.sh). Fake data only.
+image:
+  web: { repository: handoff-web, tag: kind, pullPolicy: Never }
+  worker: { repository: handoff-worker, tag: kind, pullPolicy: Never }
+
+config:
+  appUrl: http://localhost:8095
+  authDevLogin: true
+
+secrets:
+  authSecret: kind-only-secret-not-for-anything-real-0123456789
+
+web:
+  replicas: 1
+  hpa: { enabled: true, minReplicas: 1, maxReplicas: 3 }
+  service: { type: NodePort, port: 80, nodePort: 30095 }
+
+seed:
+  enabled: true
+
+postgres:
+  enabled: true

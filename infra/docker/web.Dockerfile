@@ -25,10 +25,11 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 # (and their CVEs) from the image.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
-    && addgroup -S app && adduser -S app -G app
+    && addgroup -S -g 10001 app && adduser -S -u 10001 -G app app
 COPY --from=build --chown=app:app /app/apps/web/.next/standalone ./
 COPY --from=build --chown=app:app /app/apps/web/.next/static ./apps/web/.next/static
-USER app
+# Numeric so Kubernetes can verify runAsNonRoot.
+USER 10001
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 CMD ["node", "apps/web/server.js"]

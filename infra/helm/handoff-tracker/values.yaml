@@ -1,0 +1,83 @@
+# Production-shaped defaults. values-kind.yaml overrides them for the local cluster.
+
+image:
+  web:
+    repository: ghcr.io/leighatkins/handoff-tracker-web
+    # Bumped by CI on every merge to main (.github/workflows/release.yml).
+    tag: latest
+    pullPolicy: IfNotPresent
+  worker:
+    repository: ghcr.io/leighatkins/handoff-tracker-worker
+    tag: latest
+    pullPolicy: IfNotPresent
+
+# Non-secret settings, rendered into a ConfigMap.
+config:
+  appTimeZone: Asia/Tokyo
+  appUrl: https://tracker.example.com
+  allowedEmailDomain: ""
+  # Local clusters only. The app also refuses it unless the request is addressed to localhost.
+  authDevLogin: false
+  metricsManualCheckMinutes: "4"
+  metricsAppCheckMinutes: "0.5"
+
+# Secrets. In production create the Secret yourself (or with External Secrets / Sealed Secrets)
+# and set existingSecret; the chart then never sees the values.
+secrets:
+  existingSecret: ""
+  # Used only when existingSecret is empty.
+  databaseUrl: ""
+  authSecret: ""
+  googleClientId: ""
+  googleClientSecret: ""
+  ship24ApiKey: ""
+  seventeenTrackApiKey: ""
+  aftershipApiKey: ""
+
+web:
+  replicas: 2
+  resources:
+    requests: { cpu: 100m, memory: 192Mi }
+    limits: { cpu: "1", memory: 512Mi }
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  service:
+    type: ClusterIP
+    port: 80
+    nodePort: null
+
+ingress:
+  enabled: false
+  className: ""
+  host: tracker.example.com
+  tlsSecretName: ""
+  annotations: {}
+
+worker:
+  # The worker runs once per schedule; carrier poll intervals decide what it actually checks.
+  schedule: "*/5 * * * *"
+  activeDeadlineSeconds: 240
+  resources:
+    requests: { cpu: 50m, memory: 192Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+
+# Optional one-off Job that loads the fake demo data. Never enable against real data.
+seed:
+  enabled: false
+
+# Postgres runs outside the cluster in production (Neon, RDS, Compose on a VM).
+# This in-chart instance exists only for kind.
+postgres:
+  enabled: false
+  image: postgres:17-alpine
+  password: handoff
+  storage: 1Gi
+
+networkPolicy:
+  enabled: true
+  # Where the database lives when postgres.enabled is false, for the egress rule.
+  externalDatabaseCidr: 0.0.0.0/0
+  databasePort: 5432

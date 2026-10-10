@@ -1,0 +1,66 @@
+{{- if .Values.postgres.enabled }}
+# Development-only database for kind. Production uses an external Postgres.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "ht.name" . }}-postgres
+  labels: {{- include "ht.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  serviceName: {{ include "ht.name" . }}-postgres
+  replicas: 1
+  selector:
+    matchLabels: {{- include "ht.selector" . | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels: {{- include "ht.selector" . | nindent 8 }}
+        app.kubernetes.io/component: postgres
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70 # postgres user in the alpine image
+        fsGroup: 70
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.image }}
+          env:
+            - { name: POSTGRES_USER, value: handoff }
+            - { name: POSTGRES_DB, value: handoff }
+            - { name: POSTGRES_PASSWORD, value: {{ .Values.postgres.password | quote }} }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports:
+            - { name: postgres, containerPort: 5432 }
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "handoff", "-d", "handoff"] }
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: run, mountPath: /var/run/postgresql }
+      volumes:
+        - { name: run, emptyDir: {} }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: {{ .Values.postgres.storage }} } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ht.name" . }}-postgres
+  labels: {{- include "ht.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  selector: {{- include "ht.selector" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+  ports:
+    - { name: postgres, port: 5432, targetPort: postgres }
+{{- end }}
