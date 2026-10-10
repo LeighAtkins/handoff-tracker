@@ -1,4 +1,5 @@
 import type { ShipmentAggregateRow } from "@handoff/db";
+import { LastChecked } from "@/components/last-checked";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDateTime } from "@/lib/format";
 
@@ -28,6 +29,12 @@ export function Timeline({ shipment }: { shipment: ShipmentAggregateRow }) {
                 <p className="text-xs text-zinc-500">
                   {formatDateTime(leg.startedAt)} →{" "}
                   {leg.endedAt ? formatDateTime(leg.endedAt) : "now"}
+                  {!leg.endedAt && (
+                    <>
+                      {" · checked "}
+                      <LastChecked leg={leg} />
+                    </>
+                  )}
                 </p>
               </header>
               {events.length === 0 ? (

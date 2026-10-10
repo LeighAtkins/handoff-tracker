@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPrisma } from "@handoff/db";
+import { LastChecked } from "@/components/last-checked";
 import { StatusBadge } from "@/components/status-badge";
 import { formatAgo } from "@/lib/format";
 
@@ -100,6 +101,7 @@ export default async function StuckPage() {
                 <th className="p-2 font-medium">Waiting on</th>
                 <th className="p-2 font-medium">Days quiet</th>
                 <th className="p-2 font-medium">Last event</th>
+                <th className="p-2 font-medium">Last checked</th>
               </tr>
             </thead>
             <tbody>
@@ -127,6 +129,9 @@ export default async function StuckPage() {
                   </td>
                   <td className="p-2 tabular-nums">{daysQuiet}</td>
                   <td className="p-2 text-zinc-600">{formatAgo(shipment.lastEventAt, now)}</td>
+                  <td className="p-2">
+                    <LastChecked leg={current} now={now} />
+                  </td>
                 </tr>
               ))}
             </tbody>

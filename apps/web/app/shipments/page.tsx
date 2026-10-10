@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { isStatus, STATUSES } from "@handoff/domain";
 import { getPrisma, type Prisma } from "@handoff/db";
+import { LastChecked } from "@/components/last-checked";
 import { StatusBadge, StuckBadge } from "@/components/status-badge";
 import { formatAgo } from "@/lib/format";
 
@@ -94,6 +95,7 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
               <th className="p-2 font-medium">Legs</th>
               <th className="p-2 font-medium">Current tracking number</th>
               <th className="p-2 font-medium">Last event</th>
+              <th className="p-2 font-medium">Last checked</th>
             </tr>
           </thead>
           <tbody>
@@ -116,6 +118,9 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
                   <td className="p-2">{shipment.legs.map((leg) => leg.carrierCode).join(" → ")}</td>
                   <td className="p-2 font-mono text-xs">{current?.trackingNumber}</td>
                   <td className="p-2 text-zinc-600">{formatAgo(shipment.lastEventAt)}</td>
+                  <td className="p-2">
+                    <LastChecked leg={current} />
+                  </td>
                 </tr>
               );
             })}

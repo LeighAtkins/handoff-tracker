@@ -91,6 +91,10 @@ model Leg {
   trackingNumber String
   startedAt      DateTime
   endedAt        DateTime?
+  /// When the worker last asked the carrier about this Leg, successful or not.
+  lastCheckedAt  DateTime?
+  /// The error from the last check, or null if it succeeded.
+  lastCheckError String?
   events         TrackingEvent[]
   handoffsFrom   Handoff[]       @relation("HandoffFrom")
   handoffsTo     Handoff[]       @relation("HandoffTo")
@@ -143,11 +147,13 @@ model AuditEntry {
 }
 
 model Carrier {
-  code                String  @id
+  code                String    @id
   name                String
   adapter             String
-  enabled             Boolean @default(true)
-  pollIntervalMinutes Int     @default(240)
+  enabled             Boolean   @default(true)
+  pollIntervalMinutes Int       @default(240)
+  /// Set after a 429: the worker leaves this carrier alone until then.
+  pausedUntil         DateTime?
   legs                Leg[]
 }
 

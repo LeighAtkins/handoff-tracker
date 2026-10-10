@@ -8,6 +8,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@handoff/app": "workspace:*",
     "@handoff/carriers": "workspace:*",
     "@handoff/db": "workspace:*",
     "@handoff/domain": "workspace:*",
