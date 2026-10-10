@@ -9,6 +9,7 @@ import {
 } from "@handoff/app";
 import { requireUser } from "@/lib/auth/session";
 import { getPrisma } from "@handoff/db";
+import { maskName, maskPostcode } from "@handoff/domain";
 import { ActionForm } from "@/components/action-form";
 import { cancelImportAction, confirmImportAction } from "../actions";
 
@@ -154,9 +155,9 @@ function Preview({
                 <tr key={row.row} className="border-b border-zinc-100">
                   <td className="p-2 tabular-nums text-zinc-500">{row.row}</td>
                   <td className="p-2 font-mono">{row.sourceOrderNumber}</td>
-                  <td className="p-2">{row.customerName}</td>
+                  <td className="p-2">{maskName(row.customerName)}</td>
                   <td className="p-2">
-                    {row.destinationCountry} {row.destinationPostcode}
+                    {row.destinationCountry} {maskPostcode(row.destinationPostcode)}
                   </td>
                   <td className="p-2">{row.carrierCode}</td>
                   <td className="p-2 font-mono text-xs">{row.trackingNumber}</td>

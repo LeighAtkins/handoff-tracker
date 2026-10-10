@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { daysQuiet } from "@handoff/domain";
+import { daysQuiet, maskName, maskPostcode } from "@handoff/domain";
 import { requireUser } from "@/lib/auth/session";
 import { getPrisma, shipmentAggregateInclude, toShipmentState } from "@handoff/db";
 import { StatusBadge, StuckBadge } from "@/components/status-badge";
@@ -9,6 +9,7 @@ import { Timeline } from "@/components/timeline";
 import { formatDateTime } from "@/lib/format";
 import { hasRole } from "@handoff/app";
 import { ActionsPanel } from "./actions-panel";
+import { Customer } from "./customer";
 
 export const dynamic = "force-dynamic";
 
@@ -70,16 +71,12 @@ export default async function ShipmentPage({
         {shipment.stuckSince && <StuckBadge />}
       </header>
       <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
-        <div>
-          <dt className="text-zinc-500">Customer</dt>
-          <dd>{shipment.order.customerName}</dd>
-        </div>
-        <div>
-          <dt className="text-zinc-500">Destination</dt>
-          <dd>
-            {shipment.order.destinationCountry} {shipment.order.destinationPostcode}
-          </dd>
-        </div>
+        <Customer
+          orderId={shipment.orderId}
+          maskedName={maskName(shipment.order.customerName)}
+          maskedPostcode={maskPostcode(shipment.order.destinationPostcode)}
+          country={shipment.order.destinationCountry}
+        />
         <div>
           <dt className="text-zinc-500">Last event</dt>
           <dd>
