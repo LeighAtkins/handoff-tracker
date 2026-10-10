@@ -21,7 +21,8 @@ services:
     profiles: [app]
     build: { context: ., dockerfile: infra/docker/worker.Dockerfile }
     image: handoff-worker
-    command: ["pnpm", "--dir", "/app/packages/db", "migrate:deploy"]
+    working_dir: /app/packages/db
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
     environment: &app-env
       DATABASE_URL: postgresql://handoff:handoff@postgres:5432/handoff?schema=public
       APP_TIME_ZONE: Asia/Tokyo

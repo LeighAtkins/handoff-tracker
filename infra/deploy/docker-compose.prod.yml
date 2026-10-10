@@ -30,7 +30,8 @@ services:
 
   migrate:
     image: ${WORKER_IMAGE:-ghcr.io/leighatkins/handoff-tracker-worker:latest}
-    command: ["pnpm", "--dir", "/app/packages/db", "migrate:deploy"]
+    working_dir: /app/packages/db
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
     environment: &app-env
       DATABASE_URL: postgresql://handoff:${POSTGRES_PASSWORD}@postgres:5432/handoff?schema=public
       APP_TIME_ZONE: ${APP_TIME_ZONE:-Asia/Tokyo}
