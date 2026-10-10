@@ -4,11 +4,11 @@ image:
   web:
     repository: ghcr.io/leighatkins/handoff-tracker-web
     # Bumped by CI on every merge to main (.github/workflows/release.yml).
-    tag: sha-9ee0e79
+    tag: sha-a133dcc
     pullPolicy: IfNotPresent
   worker:
     repository: ghcr.io/leighatkins/handoff-tracker-worker
-    tag: sha-9ee0e79
+    tag: sha-a133dcc
     pullPolicy: IfNotPresent
 
 # Non-secret settings, rendered into a ConfigMap.
