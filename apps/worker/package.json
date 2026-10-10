@@ -12,9 +12,7 @@
     "@handoff/carriers": "workspace:*",
     "@handoff/db": "workspace:*",
     "@handoff/domain": "workspace:*",
-    "dotenv": "^18.0.7"
-  },
-  "devDependencies": {
+    "dotenv": "^18.0.7",
     "tsx": "^4.23.15"
   }
 }

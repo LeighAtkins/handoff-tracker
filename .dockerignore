@@ -1,0 +1,15 @@
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/coverage
+**/src/generated
+.git
+.env
+.env.*
+!.env.example
+# P3: real data never goes into an image either.
+data
+e2e/test-results
+e2e/playwright-report
+e2e/playwright

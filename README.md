@@ -19,6 +19,10 @@ pnpm dev        # http://localhost:3100
 pnpm worker     # poll the fake carriers once; watch DEMO-LIVE-* shipments fill in
 ```
 
+## Deploying
+
+See [docs/deployment.md](docs/deployment.md): one small private VM with Docker Compose and automatic HTTPS. `docker compose --profile app up --build` runs the whole stack locally in containers.
+
 ## Layout
 
 | Path                | What                                                                |

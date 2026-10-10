@@ -5,6 +5,9 @@ import type { NextConfig } from "next";
 config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: true });
 
 const nextConfig: NextConfig = {
+  // A self-contained server for the Docker image (infra/docker/web.Dockerfile).
+  output: "standalone",
+  outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   transpilePackages: ["@handoff/domain", "@handoff/db", "@handoff/carriers"],
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg", "pg"],
   experimental: {
