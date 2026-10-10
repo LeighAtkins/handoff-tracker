@@ -21,7 +21,8 @@
     "db:setup": "pnpm db:up && pnpm --filter @handoff/db migrate:deploy && pnpm db:seed",
     "worker": "pnpm --filter @handoff/worker start",
     "worker:loop": "pnpm --filter @handoff/worker start --loop",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "trial:aggregators": "pnpm --filter @handoff/carriers trial"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

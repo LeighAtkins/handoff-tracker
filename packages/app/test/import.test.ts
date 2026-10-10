@@ -82,6 +82,13 @@ describe("carrierCodeFor", () => {
     expect(carrierCodeFor("4PX Worldwide")).toBe("4PX");
     expect(carrierCodeFor("Seino Transport")).toBe("SEINO_TRANSPORT");
   });
+
+  it("reads NOMS forwarder:channel values", () => {
+    expect(carrierCodeFor("4px:S5058")).toBe("4PX");
+    expect(carrierCodeFor("takesend:SAGAWA")).toBe("SAGAWA");
+    expect(carrierCodeFor("takesend")).toBe("TAKESEND");
+    expect(carrierCodeFor("acme:X1")).toBe("ACME");
+  });
 });
 
 describe("confirmImport", () => {

@@ -27,6 +27,32 @@ const GENERIC: MappingRule[] = [
   },
   { message: /picked up|collected|accepted/i, status: "SHIPPED" },
   { message: /information received|label created|pre-?advice/i, status: "PENDING" },
+  // Aggregator status codes (Ship24 milestones, 17TRACK stages, AfterShip tags), used when the
+  // message text itself is not recognised.
+  ...(
+    [
+      ["info_received", "PENDING"],
+      ["InfoReceived", "PENDING"],
+      ["pending", "PENDING"],
+      ["PickedUp", "SHIPPED"],
+      ["transit_handover", "SHIPPED"],
+      ["in_transit", "IN_TRANSIT"],
+      ["InTransit", "IN_TRANSIT"],
+      ["Departure", "IN_TRANSIT"],
+      ["Arrival", "IN_TRANSIT"],
+      ["out_for_delivery", "OUT_FOR_DELIVERY"],
+      ["OutForDelivery", "OUT_FOR_DELIVERY"],
+      ["available_for_pickup", "OUT_FOR_DELIVERY"],
+      ["AvailableForPickup", "OUT_FOR_DELIVERY"],
+      ["delivered", "DELIVERED"],
+      ["failed_attempt", "EXCEPTION"],
+      ["AttemptFail", "EXCEPTION"],
+      ["DeliveryFailure", "EXCEPTION"],
+      ["exception", "EXCEPTION"],
+      ["Returning", "RETURNED"],
+      ["Returned", "RETURNED"],
+    ] as const
+  ).map(([rawStatus, status]) => ({ rawStatus, status })),
 ];
 
 export const DEFAULT_MAPPINGS: MappingTable = {
