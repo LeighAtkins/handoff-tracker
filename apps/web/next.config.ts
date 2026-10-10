@@ -7,6 +7,8 @@ config({ path: fileURLToPath(new URL("../../.env", import.meta.url)), quiet: tru
 const nextConfig: NextConfig = {
   // A self-contained server for the Docker image (infra/docker/web.Dockerfile).
   output: "standalone",
+  // Keeps screenshots and the README demo free of the dev-mode badge.
+  devIndicators: false,
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   transpilePackages: ["@handoff/domain", "@handoff/db", "@handoff/carriers"],
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg", "pg", "bwip-js"],
