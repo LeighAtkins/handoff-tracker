@@ -8,7 +8,7 @@
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { config } from "dotenv";
-import { pollDueLegs, refreshOpenShipments } from "@handoff/app";
+import { pollDueLegs, recordWorkerRun, refreshOpenShipments } from "@handoff/app";
 import { adapterFor } from "@handoff/carriers";
 import { createPrismaClient } from "@handoff/db";
 
@@ -26,6 +26,7 @@ async function runOnce() {
   const now = new Date();
   const poll = await pollDueLegs(prisma, { adapterFor: (carrier) => adapterFor(carrier), now });
   const stuck = await refreshOpenShipments(prisma, now);
+  await recordWorkerRun(prisma, poll, stuck.changed);
   log("worker.run", {
     ...poll,
     failures: poll.failures.length,

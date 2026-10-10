@@ -5,7 +5,8 @@ import {
   type DetectedHandoff,
   type RawTrackingEvent,
 } from "@handoff/carriers";
-import { refreshShipment, type PrismaClient } from "@handoff/db";
+import type { PrismaClient } from "@handoff/db";
+import { refresh } from "./refresh";
 import { writeAudit } from "./audit";
 import { recordHandoffInTx } from "./shipments";
 
@@ -89,7 +90,7 @@ export async function ingestLegEvents(
       }
     }
 
-    const refreshed = await refreshShipment(tx, leg.shipmentId, now);
+    const refreshed = await refresh(tx, leg.shipmentId, now, WORKER_ACTOR);
     if (newEvents > 0) {
       await writeAudit(tx, {
         entityType: "Shipment",
@@ -201,7 +202,7 @@ export async function refreshOpenShipments(prisma: PrismaClient, now = new Date(
   const open = await prisma.shipment.findMany({ where: { status: OPEN }, select: { id: true } });
   let changed = 0;
   for (const { id } of open) {
-    if ((await refreshShipment(prisma, id, now)).changed) changed++;
+    if ((await refresh(prisma, id, now, WORKER_ACTOR)).changed) changed++;
   }
   return { open: open.length, changed };
 }

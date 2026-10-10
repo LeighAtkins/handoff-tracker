@@ -137,7 +137,10 @@ describe("markResolved", () => {
 
     const after = await markResolved(prisma, { shipmentId: id }, actor, day(5));
     expect(after.stuckSince).toBeNull();
-    expect((await auditFor(id))[0]).toMatchObject({ action: "STUCK_RESOLVED" });
+    expect((await auditFor(id)).map((e) => e.action)).toEqual([
+      "NO_LONGER_STUCK",
+      "STUCK_RESOLVED",
+    ]);
   });
 
   it("refuses when the shipment is not stuck", async () => {
