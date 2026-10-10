@@ -24,7 +24,11 @@ export default async function StuckPage() {
   const now = new Date();
   const stuck = await getPrisma().shipment.findMany({
     where: { stuckSince: { not: null } },
-    include: { order: true, legs: { orderBy: { sequence: "asc" } }, handoffs: true },
+    include: {
+      order: true,
+      legs: { orderBy: { sequence: "asc" }, include: { carrier: true } },
+      handoffs: true,
+    },
   });
 
   const rows = stuck

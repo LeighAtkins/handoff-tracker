@@ -9,10 +9,18 @@ export async function LastChecked({
   leg,
   now,
 }: {
-  leg?: { lastCheckedAt: Date | null; lastCheckError: string | null; carrierCode: string } | null;
+  leg?: {
+    lastCheckedAt: Date | null;
+    lastCheckError: string | null;
+    carrierCode: string;
+    carrier?: { adapter: string };
+  } | null;
   now?: Date;
 }) {
   const [t, ago] = await Promise.all([getT(), getAgo()]);
+  // No API for this carrier (P2): staff check it themselves, so "not yet" would mislead.
+  if (leg?.carrier?.adapter === "manual")
+    return <span className="text-zinc-500">{t.states.manualCheck}</span>;
   if (!leg?.lastCheckedAt) return <span className="text-zinc-400">{t.common.notYet}</span>;
   if (leg.lastCheckError) {
     return (

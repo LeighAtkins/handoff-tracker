@@ -139,6 +139,17 @@ export const en = {
     asUser: "Sign in as this user",
   },
   language: "Language",
+  states: {
+    loading: "Loading…",
+    errorTitle: "Something went wrong",
+    errorHelp: "The page could not be loaded. Your changes were not lost; try again in a moment.",
+    retry: "Try again",
+    notFoundTitle: "Not found",
+    notFoundHelp: "That shipment or page does not exist. It may have been removed by a re-import.",
+    backToShipments: "Back to shipments",
+    noImports: "No imports yet. Upload a CSV to start tracking real orders.",
+    manualCheck: "manual check",
+  },
 };
 
 export type Dictionary = typeof en;
@@ -281,6 +292,18 @@ export const ja: Dictionary = {
     asUser: "このユーザーでログイン",
   },
   language: "言語",
+  states: {
+    loading: "読み込み中…",
+    errorTitle: "問題が発生しました",
+    errorHelp:
+      "ページを読み込めませんでした。変更内容は失われていません。しばらくしてからもう一度お試しください。",
+    retry: "再試行",
+    notFoundTitle: "見つかりません",
+    notFoundHelp: "その出荷またはページは存在しません。再インポートで削除された可能性があります。",
+    backToShipments: "出荷一覧に戻る",
+    noImports: "まだインポートはありません。CSVをアップロードして実際の注文の追跡を始めましょう。",
+    manualCheck: "手動確認",
+  },
 };
 
 export const LOCALES = { en, ja } as const;

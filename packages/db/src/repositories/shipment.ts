@@ -10,7 +10,10 @@ import type { Prisma } from "../generated/prisma/client";
 
 /** Everything needed to rebuild the Shipment aggregate. */
 export const shipmentAggregateInclude = {
-  legs: { orderBy: { sequence: "asc" }, include: { events: { orderBy: { occurredAt: "asc" } } } },
+  legs: {
+    orderBy: { sequence: "asc" },
+    include: { events: { orderBy: { occurredAt: "asc" } }, carrier: true },
+  },
   handoffs: { include: { fromLeg: true, toLeg: true } },
 } satisfies Prisma.ShipmentInclude;
 
