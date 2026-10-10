@@ -1,0 +1,19 @@
+{
+  "name": "@handoff/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@handoff/carriers": "workspace:*",
+    "@handoff/db": "workspace:*",
+    "@handoff/domain": "workspace:*",
+    "dotenv": "^18.0.7"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

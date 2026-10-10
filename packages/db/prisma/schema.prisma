@@ -1,0 +1,155 @@
+// Names follow the ubiquitous language: Order, Shipment, Leg, Handoff, TrackingEvent, AuditEntry.
+// Status rules live in packages/domain; this schema only stores state.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Mirrors Status in packages/domain.
+enum ShipmentStatus {
+  PENDING
+  SHIPPED
+  IN_TRANSIT
+  HANDED_OFF
+  OUT_FOR_DELIVERY
+  DELIVERED
+  EXCEPTION
+  RETURNED
+}
+
+enum HandoffSource {
+  CARRIER_EVENT
+  MANUAL
+  IMPORT
+}
+
+enum EventSource {
+  CARRIER
+  AGGREGATOR
+  MANUAL
+  FAKE
+}
+
+enum Role {
+  VIEWER
+  OPERATOR
+  ADMIN
+}
+
+model Order {
+  id                  String     @id @default(cuid())
+  sourceSystem        String
+  sourceOrderNumber   String
+  customerName        String
+  destinationCountry  String
+  destinationPostcode String
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  shipments           Shipment[]
+
+  @@unique([sourceSystem, sourceOrderNumber])
+}
+
+model Shipment {
+  id          String         @id @default(cuid())
+  orderId     String
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status      ShipmentStatus @default(PENDING)
+  lastEventAt DateTime?
+  stuckSince  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Manual override: all four are set together, or none are.
+  overrideStatus ShipmentStatus?
+  overrideReason String?
+  overrideBy     String?
+  overrideAt     DateTime?
+
+  legs     Leg[]
+  handoffs Handoff[]
+
+  @@index([status])
+  @@index([stuckSince])
+}
+
+model Leg {
+  id             String          @id @default(cuid())
+  shipmentId     String
+  shipment       Shipment        @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  sequence       Int
+  carrierCode    String
+  carrier        Carrier         @relation(fields: [carrierCode], references: [code])
+  trackingNumber String
+  startedAt      DateTime
+  endedAt        DateTime?
+  events         TrackingEvent[]
+  handoffsFrom   Handoff[]       @relation("HandoffFrom")
+  handoffsTo     Handoff[]       @relation("HandoffTo")
+
+  @@unique([shipmentId, sequence])
+  @@index([carrierCode, trackingNumber])
+}
+
+model Handoff {
+  id         String        @id @default(cuid())
+  shipmentId String
+  shipment   Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  fromLegId  String        @unique
+  fromLeg    Leg           @relation("HandoffFrom", fields: [fromLegId], references: [id], onDelete: Cascade)
+  toLegId    String        @unique
+  toLeg      Leg           @relation("HandoffTo", fields: [toLegId], references: [id], onDelete: Cascade)
+  detectedAt DateTime
+  source     HandoffSource
+}
+
+model TrackingEvent {
+  id               String         @id @default(cuid())
+  legId            String
+  leg              Leg            @relation(fields: [legId], references: [id], onDelete: Cascade)
+  occurredAt       DateTime
+  rawStatus        String
+  rawMessage       String
+  location         String?
+  normalisedStatus ShipmentStatus
+  source           EventSource
+  ingestedAt       DateTime       @default(now())
+
+  // Makes polling idempotent: re-fetching the same history inserts nothing new.
+  @@unique([legId, occurredAt, rawMessage])
+}
+
+model AuditEntry {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  action     String
+  /// User email, or "system:<component>" e.g. "system:worker".
+  actor      String
+  before     Json?
+  after      Json?
+  at         DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
+
+model Carrier {
+  code                String  @id
+  name                String
+  adapter             String
+  enabled             Boolean @default(true)
+  pollIntervalMinutes Int     @default(240)
+  legs                Leg[]
+}
+
+model User {
+  id    String @id @default(cuid())
+  email String @unique
+  role  Role   @default(VIEWER)
+}

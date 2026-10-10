@@ -1,0 +1,21 @@
+node_modules/
+.next/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+**/src/generated/
+
+# Env files: only the example is committed
+.env
+.env.*
+!.env.example
+
+# P3: real customer data never enters this repo.
+# Put any real exports under /data locally; CI fails if anything there is tracked.
+/data/
+
+# Playwright
+e2e/test-results/
+e2e/playwright-report/
