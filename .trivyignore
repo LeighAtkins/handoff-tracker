@@ -1,0 +1,4 @@
+# Accepted findings. Each entry needs: the ID, why it does not apply or cannot be fixed yet,
+# who accepted it, and a review date. See SECURITY.md. Currently empty.
+# Example:
+# CVE-2099-0001  # dev-only tool, never in an image; accepted by @LeighAtkins; review 2026-11-01

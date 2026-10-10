@@ -9,3 +9,10 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
   - unrs-resolver
+
+# Security overrides for transitive dependencies (see SECURITY.md). Remove when upstream catches up.
+overrides:
+  # GHSA-3f6p-5ww8-9rcr, via prisma (CLI). Same major, fix only.
+  mysql2: "^3.22.0"
+  # CVE-2026-40345, via @prisma/config. Major bump; verified prisma generate/migrate still work.
+  deepmerge-ts: "^8.0.0"

@@ -1,6 +1,6 @@
 # Polling worker. Also carries the Prisma CLI, so it runs migrations too:
 #   docker build -f infra/docker/worker.Dockerfile -t handoff-worker .
-#   docker run --rm -e DATABASE_URL=... handoff-worker pnpm --dir /app/packages/db migrate:deploy
+#   docker run --rm -e DATABASE_URL=... -w /app/packages/db handoff-worker node_modules/.bin/prisma migrate deploy
 FROM node:24-alpine AS base
 RUN corepack enable
 WORKDIR /app
@@ -17,8 +17,11 @@ COPY --from=prune /app/out/full/ .
 COPY tsconfig.base.json ./
 RUN pnpm turbo run generate --filter=@handoff/db
 
-FROM base AS run
+FROM node:24-alpine AS run
 ENV NODE_ENV=production
+# Runs with node only; see web.Dockerfile for why npm and corepack are removed.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 COPY --from=build --chown=node:node /app /app
 USER node
 # tsx is a dependency of the worker package, so run from there. One run by default
