@@ -5,7 +5,9 @@
  */
 import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
+import { normalise } from "@handoff/carriers";
 import { createPrismaClient } from "./client";
+import { refreshShipment } from "./repositories/shipment";
 import type { EventSource, ShipmentStatus } from "./generated/prisma/client";
 
 config({ path: fileURLToPath(new URL("../../../.env", import.meta.url)), quiet: true });
@@ -57,74 +59,65 @@ interface Step {
   rawStatus: string;
   rawMessage: string;
   location: string;
-  status: ShipmentStatus;
 }
 
 // The happy-path journey. Shipments stop part-way along it depending on their scenario.
+// Events are normalised by packages/carriers, exactly as live events will be.
 const JOURNEY: Step[] = [
   {
     leg: 1,
     rawStatus: "INFO_RECEIVED",
     rawMessage: "Shipment information received",
     location: "Shenzhen, CN",
-    status: "PENDING",
   },
   {
     leg: 1,
     rawStatus: "PICKED_UP",
     rawMessage: "Parcel picked up",
     location: "Shenzhen, CN",
-    status: "SHIPPED",
   },
   {
     leg: 1,
     rawStatus: "DEPARTED",
     rawMessage: "Departed from sorting centre",
     location: "Shenzhen, CN",
-    status: "IN_TRANSIT",
   },
   {
     leg: 1,
     rawStatus: "ARRIVED_DEST",
     rawMessage: "Arrived at destination country",
     location: "Osaka, JP",
-    status: "IN_TRANSIT",
   },
   {
     leg: 1,
     rawStatus: "HANDOVER",
     rawMessage: "Handed over to last-mile carrier: Sagawa",
     location: "Osaka, JP",
-    status: "HANDED_OFF",
   },
-  // Open question for ADR-0002: should last-mile transit scans normalise to IN_TRANSIT or stay HANDED_OFF?
+  // Sagawa's transit scans normalise to IN_TRANSIT; the Shipment stays HANDED_OFF (ADR-0002).
   {
     leg: 2,
     rawStatus: "集荷",
     rawMessage: "荷物を受け付けました",
     location: "大阪営業所",
-    status: "IN_TRANSIT",
   },
   {
     leg: 2,
     rawStatus: "輸送中",
     rawMessage: "輸送中です",
     location: "東京中継センター",
-    status: "IN_TRANSIT",
   },
   {
     leg: 2,
     rawStatus: "配達中",
     rawMessage: "配達中です",
     location: "東京営業所",
-    status: "OUT_FOR_DELIVERY",
   },
   {
     leg: 2,
     rawStatus: "配達完了",
     rawMessage: "配達が完了しました",
     location: "東京営業所",
-    status: "DELIVERED",
   },
 ];
 const HANDOFF_STEP = 4;
@@ -136,6 +129,7 @@ interface Scenario {
   lastStep: number;
   /** How long ago the last event happened. */
   quietFor: () => number;
+  /** What the domain should derive. The seed fails if it does not, which keeps fixtures honest. */
   status: ShipmentStatus;
   stuck?: boolean;
   tail?: Step[];
@@ -198,7 +192,6 @@ const SCENARIOS: Scenario[] = [
         rawStatus: "CUSTOMS_HOLD",
         rawMessage: "Held by customs: inspection required",
         location: "Osaka, JP",
-        status: "EXCEPTION",
       },
     ],
   },
@@ -214,7 +207,6 @@ const SCENARIOS: Scenario[] = [
         rawStatus: "持戻",
         rawMessage: "住所不明のため持ち戻りました",
         location: "東京営業所",
-        status: "EXCEPTION",
       },
     ],
   },
@@ -230,14 +222,12 @@ const SCENARIOS: Scenario[] = [
         rawStatus: "持戻",
         rawMessage: "住所不明のため持ち戻りました",
         location: "東京営業所",
-        status: "EXCEPTION",
       },
       {
         leg: 2,
         rawStatus: "返送",
         rawMessage: "差出人へ返送しました",
         location: "大阪営業所",
-        status: "RETURNED",
       },
     ],
   },
@@ -297,9 +287,6 @@ async function main() {
       const shipment = await prisma.shipment.create({
         data: {
           orderId: order.id,
-          status: scenario.status,
-          lastEventAt: new Date(lastAt),
-          stuckSince: scenario.stuck ? new Date(lastAt) : null,
           createdAt: order.createdAt,
         },
       });
@@ -350,10 +337,21 @@ async function main() {
           rawStatus: step.rawStatus,
           rawMessage: step.rawMessage,
           location: step.location,
-          normalisedStatus: step.status,
+          normalisedStatus: normalise(step.leg === 2 ? "SAGAWA" : "4PX", step),
           source,
         })),
       });
+
+      const { after } = await refreshShipment(prisma, shipment.id, new Date(now));
+      if (
+        after.status !== scenario.status ||
+        (after.stuckSince !== null) !== Boolean(scenario.stuck)
+      ) {
+        throw new Error(
+          `Scenario "${scenario.name}" expected ${scenario.status}${scenario.stuck ? " (stuck)" : ""}, ` +
+            `domain derived ${after.status}${after.stuckSince ? " (stuck)" : ""}`,
+        );
+      }
     }
   }
 
