@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { requireUser } from "@/lib/auth/session";
 import { getPrisma } from "@handoff/db";
 import { LastChecked } from "@/components/last-checked";
 import { StatusBadge } from "@/components/status-badge";
@@ -17,6 +18,7 @@ const BUCKETS = [
 ];
 
 export default async function StuckPage() {
+  await requireUser();
   const now = new Date();
   const stuck = await getPrisma().shipment.findMany({
     where: { stuckSince: { not: null } },

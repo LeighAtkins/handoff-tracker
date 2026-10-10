@@ -6,6 +6,7 @@ import * as app from "@handoff/app";
 import { getPrisma } from "@handoff/db";
 import { DomainError, STATUSES } from "@handoff/domain";
 import { getActor } from "@/lib/actor";
+import { NotAllowedError } from "@/lib/auth/session";
 import { parseZonedDateTime } from "@/lib/format";
 
 export type ActionState = { ok: boolean; message: string } | null;
@@ -33,7 +34,8 @@ async function run<T extends z.ZodType>(
   try {
     await useCase(parsed.data, await getActor());
   } catch (error) {
-    if (error instanceof DomainError) return { ok: false, message: error.message };
+    if (error instanceof DomainError || error instanceof NotAllowedError)
+      return { ok: false, message: error.message };
     throw error;
   }
   revalidatePath(`/shipments/${(parsed.data as { shipmentId: string }).shipmentId}`);

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { isStatus, STATUSES } from "@handoff/domain";
+import { requireUser } from "@/lib/auth/session";
 import { getPrisma, type Prisma } from "@handoff/db";
 import { LastChecked } from "@/components/last-checked";
 import { StatusBadge, StuckBadge } from "@/components/status-badge";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 type SearchParams = Promise<{ q?: string; status?: string; stuck?: string }>;
 
 export default async function ShipmentsPage({ searchParams }: { searchParams: SearchParams }) {
+  await requireUser();
   const { q = "", status = "", stuck } = await searchParams;
   const query = q.trim();
 

@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { daysQuiet } from "@handoff/domain";
+import { requireUser } from "@/lib/auth/session";
 import { getPrisma, shipmentAggregateInclude, toShipmentState } from "@handoff/db";
 import { StatusBadge, StuckBadge } from "@/components/status-badge";
 import { Timeline } from "@/components/timeline";
 import { formatDateTime } from "@/lib/format";
+import { hasRole } from "@handoff/app";
 import { ActionsPanel } from "./actions-panel";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +34,7 @@ export default async function ShipmentPage({
   params: Params;
   searchParams: SearchParams;
 }) {
+  const user = await requireUser();
   const { id } = await params;
   const { tab } = await searchParams;
   const shipment = await load(id);
@@ -178,7 +181,13 @@ export default async function ShipmentPage({
             </>
           )}
         </div>
-        <ActionsPanel shipment={shipment} carriers={carriers} />
+        {hasRole(user.role, "OPERATOR") ? (
+          <ActionsPanel shipment={shipment} carriers={carriers} />
+        ) : (
+          <p className="text-sm text-zinc-600">
+            You have read-only access. Ask an admin for the operator role to make changes.
+          </p>
+        )}
       </div>
     </>
   );

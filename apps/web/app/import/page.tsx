@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { requireUser } from "@/lib/auth/session";
 import { getPrisma } from "@handoff/db";
 import { ActionForm, Field } from "@/components/action-form";
 import { formatDateTime } from "@/lib/format";
@@ -9,6 +10,7 @@ export const metadata: Metadata = { title: "Import" };
 export const dynamic = "force-dynamic";
 
 export default async function ImportPage() {
+  await requireUser("OPERATOR");
   const recent = await getPrisma().importBatch.findMany({
     orderBy: { createdAt: "desc" },
     take: 10,

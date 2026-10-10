@@ -20,7 +20,14 @@ export default defineConfig({
     baseURL: `http://localhost:${port}`,
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"], storageState: "playwright/.auth/operator.json" },
+      dependencies: ["setup"],
+    },
+  ],
   webServer: {
     command: process.env.CI ? "pnpm --filter @handoff/web start" : "pnpm --filter @handoff/web dev",
     cwd: "..",
