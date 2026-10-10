@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "ht.name" . }}-worker
+  labels: {{- include "ht.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  schedule: {{ .Values.worker.schedule | quote }}
+  # A slow run must never overlap the next one: that would double the calls to a free tier.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: {{ .Values.worker.activeDeadlineSeconds }}
+      backoffLimit: 0
+      template:
+        metadata:
+          labels: {{- include "ht.selector" . | nindent 12 }}
+            app.kubernetes.io/component: worker
+        spec:
+          restartPolicy: Never
+          {{- include "ht.podSecurity" . | nindent 10 }}
+          containers:
+            - name: worker
+              image: {{ include "ht.image" .Values.image.worker }}
+              imagePullPolicy: {{ .Values.image.worker.pullPolicy }}
+              {{- include "ht.env" . | nindent 14 }}
+              {{- include "ht.containerSecurity" . | nindent 14 }}
+              resources: {{- toYaml .Values.worker.resources | nindent 16 }}
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+          volumes:
+            - { name: tmp, emptyDir: {} }

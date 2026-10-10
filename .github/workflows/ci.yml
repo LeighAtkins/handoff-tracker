@@ -130,3 +130,17 @@ jobs:
           ignore-unfixed: true
           trivyignores: .trivyignore
           exit-code: "1"
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.19.0
+      - name: Lint and render the chart (kind and production-shaped values)
+        run: |
+          helm lint infra/helm/handoff-tracker -f infra/helm/handoff-tracker/values-kind.yaml
+          helm lint infra/helm/handoff-tracker --set secrets.existingSecret=handoff-secrets
+          helm template t infra/helm/handoff-tracker -f infra/helm/handoff-tracker/values-kind.yaml > /dev/null
+          helm template t infra/helm/handoff-tracker --set secrets.existingSecret=handoff-secrets > /dev/null

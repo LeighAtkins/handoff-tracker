@@ -1,0 +1,74 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $sel := include "ht.selector" . }}
+# Default deny: every pod in this release starts with no ingress and no egress.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ht.name" . }}-default-deny
+  labels: {{- include "ht.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- $sel | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+---
+# web: reachable on its HTTP port; may talk only to DNS and the database.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ht.name" . }}-web
+  labels: {{- include "ht.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- $sel | nindent 6 }}
+      app.kubernetes.io/component: web
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - ports: [{ protocol: TCP, port: 3000 }]
+  egress:
+    {{- include "ht.dnsEgress" . | nindent 4 }}
+    {{- include "ht.dbEgress" . | nindent 4 }}
+    # Google sign-in: the OAuth token endpoint is on the public internet.
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0, except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16] }
+      ports: [{ protocol: TCP, port: 443 }]
+---
+# worker and seed: DNS, the database, and HTTPS to the tracking aggregator. No ingress at all.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ht.name" . }}-worker
+  labels: {{- include "ht.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- $sel | nindent 6 }}
+    matchExpressions:
+      - { key: app.kubernetes.io/component, operator: In, values: [worker, seed] }
+  policyTypes: [Ingress, Egress]
+  egress:
+    {{- include "ht.dnsEgress" . | nindent 4 }}
+    {{- include "ht.dbEgress" . | nindent 4 }}
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0, except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16] }
+      ports: [{ protocol: TCP, port: 443 }]
+{{- if .Values.postgres.enabled }}
+---
+# postgres: only web (including its migrate init container), worker and seed may connect.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "ht.name" . }}-postgres
+  labels: {{- include "ht.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- $sel | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {{- $sel | nindent 14 }}
+            matchExpressions:
+              - { key: app.kubernetes.io/component, operator: In, values: [web, worker, seed] }
+      ports: [{ protocol: TCP, port: 5432 }]
+{{- end }}
+{{- end }}

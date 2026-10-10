@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ht.name" . }}-web
+  labels: {{- include "ht.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  {{- if not .Values.web.hpa.enabled }}
+  replicas: {{ .Values.web.replicas }}
+  {{- end }}
+  selector:
+    matchLabels: {{- include "ht.selector" . | nindent 6 }}
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels: {{- include "ht.selector" . | nindent 8 }}
+        app.kubernetes.io/component: web
+      annotations:
+        # Roll pods when settings change.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- include "ht.podSecurity" . | nindent 6 }}
+      initContainers:
+        # Prisma takes an advisory lock, so several pods starting at once migrate safely.
+        - name: migrate
+          image: {{ include "ht.image" .Values.image.worker }}
+          imagePullPolicy: {{ .Values.image.worker.pullPolicy }}
+          workingDir: /app/packages/db
+          command: ["node_modules/.bin/prisma", "migrate", "deploy"]
+          {{- include "ht.env" . | nindent 10 }}
+          {{- include "ht.containerSecurity" . | nindent 10 }}
+          resources: {{- toYaml .Values.worker.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      containers:
+        - name: web
+          image: {{ include "ht.image" .Values.image.web }}
+          imagePullPolicy: {{ .Values.image.web.pullPolicy }}
+          ports:
+            - { name: http, containerPort: 3000 }
+          {{- include "ht.env" . | nindent 10 }}
+          {{- include "ht.containerSecurity" . | nindent 10 }}
+          # Liveness never touches the database, so a database outage does not restart every pod.
+          livenessProbe:
+            httpGet: { path: /api/live, port: http }
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: { path: /api/health, port: http }
+            periodSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            httpGet: { path: /api/live, port: http }
+            periodSeconds: 2
+            failureThreshold: 30
+          resources: {{- toYaml .Values.web.resources | nindent 12 }}
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+            - { name: next-cache, mountPath: /app/apps/web/.next/cache }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+        - { name: next-cache, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ht.name" . }}-web
+  labels: {{- include "ht.labels" . | nindent 4 }}
+    app.kubernetes.io/component: web
+spec:
+  type: {{ .Values.web.service.type }}
+  selector: {{- include "ht.selector" . | nindent 4 }}
+    app.kubernetes.io/component: web
+  ports:
+    - name: http
+      port: {{ .Values.web.service.port }}
+      targetPort: http
+      {{- if and (eq .Values.web.service.type "NodePort") .Values.web.service.nodePort }}
+      nodePort: {{ .Values.web.service.nodePort }}
+      {{- end }}
+{{- if .Values.web.hpa.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "ht.name" . }}-web
+  labels: {{- include "ht.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: {{ include "ht.name" . }}-web }
+  minReplicas: {{ .Values.web.hpa.minReplicas }}
+  maxReplicas: {{ .Values.web.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: {{ .Values.web.hpa.targetCPUUtilizationPercentage }} }
+{{- end }}

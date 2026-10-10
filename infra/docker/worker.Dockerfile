@@ -23,7 +23,8 @@ ENV NODE_ENV=production
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 COPY --from=build --chown=node:node /app /app
-USER node
+# The image's built-in node user, by number so Kubernetes can verify runAsNonRoot.
+USER 1000
 # tsx is a dependency of the worker package, so run from there. One run by default
 # (Kubernetes CronJob); Compose passes --loop.
 WORKDIR /app/apps/worker

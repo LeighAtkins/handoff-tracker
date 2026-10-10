@@ -1,0 +1,9 @@
+Handoff Tracker {{ .Chart.AppVersion }} is deploying as "{{ .Release.Name }}".
+
+{{- if eq .Values.web.service.type "NodePort" }}
+Open {{ .Values.config.appUrl }} (NodePort {{ .Values.web.service.nodePort }}).
+{{- else }}
+Try it locally:  kubectl port-forward svc/{{ include "ht.name" . }}-web 8080:{{ .Values.web.service.port }}
+{{- end }}
+The worker runs on "{{ .Values.worker.schedule }}"; trigger one now with:
+  kubectl create job --from=cronjob/{{ include "ht.name" . }}-worker manual-$(date +%s)
