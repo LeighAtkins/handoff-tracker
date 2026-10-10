@@ -10,6 +10,10 @@ updates:
   - package-ecosystem: docker
     directory: /infra/docker
     schedule: { interval: weekly }
+    ignore:
+      # Stay on the current Node LTS; move majors deliberately (and with .nvmrc and engines).
+      - dependency-name: node
+        update-types: [version-update:semver-major]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
