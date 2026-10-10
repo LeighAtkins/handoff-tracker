@@ -78,6 +78,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@handoff/app':
+        specifier: workspace:*
+        version: link:../../packages/app
       '@handoff/carriers':
         specifier: workspace:*
         version: link:../../packages/carriers

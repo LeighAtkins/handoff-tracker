@@ -356,6 +356,34 @@ async function main() {
     }
   }
 
+  // Live demo: shipments whose tracking numbers are in the fake carrier's fixture. They start with
+  // no events; run `pnpm worker` to watch the worker fill them in, including the Sagawa handoff.
+  for (const [i, trackingNumber] of [
+    "4PXDEMO0001CN",
+    "4PXDEMO0002CN",
+    "4PXDEMO0003CN",
+    "4PXDEMO0004CN",
+  ].entries()) {
+    const startedAt = new Date(now - 8 * DAY);
+    await prisma.order.create({
+      data: {
+        sourceSystem: "shopify",
+        sourceOrderNumber: `DEMO-LIVE-${i + 1}`,
+        customerName: `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`,
+        destinationCountry: "JP",
+        destinationPostcode: `${digits(3)}-${digits(4)}`,
+        createdAt: startedAt,
+        shipments: {
+          create: {
+            createdAt: startedAt,
+            legs: { create: { sequence: 1, carrierCode: "4PX", trackingNumber, startedAt } },
+          },
+        },
+      },
+    });
+    orderNumber++;
+  }
+
   await prisma.auditEntry.create({
     data: {
       entityType: "System",

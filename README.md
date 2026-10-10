@@ -14,8 +14,9 @@ Requires Node 24, Docker, and pnpm (`corepack enable`).
 ```sh
 pnpm install
 cp .env.example .env
-pnpm db:setup   # start Postgres on :5433, apply migrations, seed 50 fake orders
+pnpm db:setup   # start Postgres on :5433, apply migrations, seed 54 fake orders
 pnpm dev        # http://localhost:3100
+pnpm worker     # poll the fake carriers once; watch DEMO-LIVE-* shipments fill in
 ```
 
 ## Layout
