@@ -51,6 +51,29 @@ const TrackInfoResponse = z.looseObject({
   }),
 });
 
+const RegisterResponse = z.looseObject({
+  data: z.looseObject({
+    rejected: z
+      .array(
+        z.looseObject({
+          number: z.string(),
+          error: z
+            .looseObject({ code: z.number().nullish(), message: z.string().nullish() })
+            .nullish(),
+        }),
+      )
+      .nullish(),
+  }),
+});
+
+const ALREADY_REGISTERED = -18019901;
+
+/**
+ * 17TRACK carrier keys (https://res.17track.net/asset/carrier/info/apicarrier.all.json). Auto-detection
+ * fails for 4PX's 12-digit numbers, so the key is always sent when known.
+ */
+const CARRIER_KEYS: Record<string, number> = { "4PX": 190094, SAGAWA: 100040 };
+
 /**
  * 17TRACK is register-then-poll: a number must be registered once, after which 17TRACK tracks it
  * in the background. An unregistered number is registered and reported as "no events yet".
@@ -74,12 +97,15 @@ export function createSeventeenTrackClient(
   return {
     name: "17TRACK",
     async track(trackingNumber, carrierCode) {
-      const response = TrackInfoResponse.parse(
-        await post("/gettrackinfo", [{ number: trackingNumber }]),
-      );
+      const item = { number: trackingNumber, carrier: CARRIER_KEYS[carrierCode] };
+      const response = TrackInfoResponse.parse(await post("/gettrackinfo", [item]));
       const accepted = response.data.accepted?.find((a) => a.number === trackingNumber);
       if (!accepted) {
-        await post("/register", [{ number: trackingNumber }]);
+        const registered = RegisterResponse.parse(await post("/register", [item]));
+        const rejected = registered.data.rejected?.find((r) => r.number === trackingNumber);
+        // Already registered (-18019901) but no events yet is the normal "wait" state.
+        if (rejected && rejected.error?.code !== ALREADY_REGISTERED)
+          throw new Error(`17TRACK rejected registration: ${rejected.error?.message ?? "unknown"}`);
         return { events: [], handoff: null };
       }
 
@@ -87,7 +113,8 @@ export function createSeventeenTrackClient(
       const events: AttributedEvent[] = providers.flatMap((p) =>
         (p.events ?? []).map((e) => ({
           occurredAt: new Date(e.time_utc ?? e.time_iso ?? 0),
-          rawStatus: e.stage || e.sub_status || "",
+          // Sub-statuses such as "InTransit_CustomsProcessing" keep only the main status.
+          rawStatus: e.stage || e.sub_status?.split("_")[0] || "",
           rawMessage: e.description ?? "",
           location: e.location ?? null,
           carrierCode: carrierCodeFromAggregator(p.provider?.name),

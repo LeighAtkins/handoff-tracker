@@ -147,6 +147,11 @@ describe("17TRACK", () => {
                       description: "配達中です",
                       stage: "OutForDelivery",
                     },
+                    {
+                      time_utc: "2026-10-05T00:00:00Z",
+                      description: "持戻（その他）",
+                      sub_status: "DeliveryFailure_Other",
+                    },
                   ],
                 },
               ],
@@ -178,6 +183,45 @@ describe("17TRACK", () => {
     expect(calls.map((c) => c.split("/").at(-1))).toEqual(["gettrackinfo", "register"]);
   });
 
+  it("sends the carrier key and reports a rejected registration", async () => {
+    const bodies: unknown[] = [];
+    const fetch = mockFetch({
+      "POST https://api.17track.net/track/v2.4/gettrackinfo": (init?: RequestInit) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return { code: 0, data: { accepted: [], rejected: [{ number: "900011112222" }] } };
+      },
+      "POST https://api.17track.net/track/v2.4/register": {
+        code: 0,
+        data: {
+          accepted: [],
+          rejected: [{ number: "900011112222", error: { message: "Carrier cannot be detected." } }],
+        },
+      },
+    });
+    await expect(
+      adapterFor({ code: "4PX", adapter: "17track" }, { env, fetch }).fetchEvents("900011112222"),
+    ).rejects.toThrow("Carrier cannot be detected.");
+    expect(bodies).toEqual([[{ number: "900011112222", carrier: 190094 }]]);
+  });
+
+  it("waits quietly on a number that is registered but has no events yet", async () => {
+    const fetch = mockFetch({
+      "POST https://api.17track.net/track/v2.4/gettrackinfo": {
+        code: 0,
+        data: { accepted: [], rejected: [{ number: "4PX1CN" }] },
+      },
+      "POST https://api.17track.net/track/v2.4/register": {
+        code: 0,
+        data: {
+          rejected: [{ number: "4PX1CN", error: { code: -18019901, message: "registered" } }],
+        },
+      },
+    });
+    expect(
+      await adapterFor({ code: "4PX", adapter: "17track" }, { env, fetch }).fetchEvents("4PX1CN"),
+    ).toEqual([]);
+  });
+
   it("splits providers into legs and hands off under the same number", async () => {
     const fetch = mockFetch({ "POST https://api.17track.net/track/v2.4/gettrackinfo": tracked });
     const fourPx = adapterFor({ code: "4PX", adapter: "17track" }, { env, fetch });
@@ -191,6 +235,8 @@ describe("17TRACK", () => {
     const sagawa = adapterFor({ code: "SAGAWA", adapter: "17track" }, { env, fetch });
     const sagawaEvents = await sagawa.fetchEvents("4PX1CN");
     expect(normalise("SAGAWA", sagawaEvents[0]!)).toBe("OUT_FOR_DELIVERY");
+    expect(sagawaEvents[1]?.rawStatus).toBe("DeliveryFailure");
+    expect(normalise("SAGAWA", sagawaEvents[1]!)).toBe("EXCEPTION");
   });
 });
 
