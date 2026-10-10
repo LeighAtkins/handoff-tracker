@@ -34,6 +34,9 @@ the two images there and point them at a managed Postgres. Kubernetes is not wor
 2. **DNS**: point `<DOMAIN>` (e.g. a subdomain you control) at the VM's IP.
 3. **Server**: install Docker, copy `infra/deploy/` to it, and create `.env.prod` from
    `.env.prod.example`. Generate secrets with `openssl rand -base64 32`.
+   The images are published to GHCR by the Release workflow. If the packages are private
+   (the GHCR default), run `docker login ghcr.io` on the server with a token that has
+   `read:packages`, or make the two packages public in GitHub → Packages → Package settings.
 4. **Start**: `docker compose --env-file .env.prod -f docker-compose.prod.yml up -d`.
    Migrations run first (the `migrate` service), then web and worker start.
 5. **First admin**: the first person to sign in with a company address becomes a viewer.
