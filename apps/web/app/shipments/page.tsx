@@ -34,7 +34,7 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
 
   const shipments = await getPrisma().shipment.findMany({
     where,
-    include: { order: true, legs: { orderBy: { sequence: "asc" } } },
+    include: { order: true, legs: { orderBy: { sequence: "asc" }, include: { carrier: true } } },
     orderBy: [
       { stuckSince: { sort: "asc", nulls: "last" } },
       { lastEventAt: { sort: "desc", nulls: "last" } },

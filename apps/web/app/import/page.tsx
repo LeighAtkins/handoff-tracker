@@ -49,6 +49,11 @@ export default async function ImportPage() {
         </aside>
       </div>
 
+      {recent.length === 0 && (
+        <p className="mt-10 rounded border border-dashed border-zinc-300 bg-white p-6 text-center text-sm text-zinc-600">
+          {t.states.noImports}
+        </p>
+      )}
       {recent.length > 0 && (
         <>
           <h2 className="mt-10 font-medium">{t.importPage.recent}</h2>
