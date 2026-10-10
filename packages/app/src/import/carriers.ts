@@ -18,15 +18,27 @@ const ALIASES: Record<string, string> = {
   日本郵便: "JAPANPOST",
   dhl: "DHL",
   "dhl express": "DHL",
+  takesend: "TAKESEND",
 };
 
+function slug(key: string): string {
+  return key
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+/**
+ * NOMS records some couriers as "forwarder:channel", e.g. "4px:S5058" (a 4PX service code) or
+ * "takesend:SAGAWA" (Takesend booking, Sagawa last mile and tracking number). A known carrier
+ * after the colon wins; otherwise the part before it names the carrier.
+ */
 export function carrierCodeFor(name: string): string {
   const key = name.trim().toLowerCase().replace(/\s+/g, " ");
-  return (
-    ALIASES[key] ??
-    key
-      .toUpperCase()
-      .replace(/[^A-Z0-9]+/g, "_")
-      .replace(/^_|_$/g, "")
-  );
+  const alias = ALIASES[key];
+  if (alias) return alias;
+  const [forwarder, channel] = key.split(":").map((part) => part.trim());
+  if (channel !== undefined && forwarder)
+    return ALIASES[channel] ?? ALIASES[forwarder] ?? slug(forwarder);
+  return slug(key);
 }

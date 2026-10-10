@@ -45,3 +45,5 @@ pnpm worker     # poll the fake carriers once; watch DEMO-LIVE-* shipments fill 
 ## Decisions
 
 - [ADR-0001: Project scope and stack](docs/adr/0001-project-scope-and-stack.md)
+- [ADR-0002: Status model and explicit handoffs](docs/adr/0002-status-model-and-explicit-handoffs.md)
+- [ADR-0003: Tracking aggregator](docs/adr/0003-tracking-aggregator.md) (proposed)
