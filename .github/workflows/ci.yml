@@ -80,7 +80,7 @@ jobs:
           AUTH_DEV_LOGIN: "true"
           AUTH_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
