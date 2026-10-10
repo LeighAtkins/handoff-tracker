@@ -6,6 +6,7 @@ import { getPrisma, shipmentAggregateInclude, toShipmentState } from "@handoff/d
 import { StatusBadge, StuckBadge } from "@/components/status-badge";
 import { Timeline } from "@/components/timeline";
 import { formatDateTime } from "@/lib/format";
+import { ActionsPanel } from "./actions-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -38,18 +39,20 @@ export default async function ShipmentPage({
 
   const state = toShipmentState(shipment);
   const quiet = daysQuiet(state, new Date());
-  const audit =
-    tab === "audit"
-      ? await getPrisma().auditEntry.findMany({
-          where: {
-            OR: [
-              { entityType: "Shipment", entityId: id },
-              { entityType: "Order", entityId: shipment.orderId },
-            ],
-          },
-          orderBy: { at: "desc" },
-        })
-      : [];
+  const prisma = getPrisma();
+  const [audit, carriers] = await Promise.all([
+    prisma.auditEntry.findMany({
+      where: {
+        OR: [
+          { entityType: "Shipment", entityId: id },
+          { entityType: "Order", entityId: shipment.orderId },
+        ],
+      },
+      orderBy: { at: "desc" },
+    }),
+    prisma.carrier.findMany({ where: { enabled: true }, orderBy: { name: "asc" } }),
+  ]);
+  const notes = audit.filter((entry) => entry.action === "NOTE_ADDED");
 
   return (
     <>
@@ -112,45 +115,70 @@ export default async function ShipmentPage({
         })}
       </nav>
 
-      <div className="mt-6">
-        {tab === "audit" ? (
-          audit.length === 0 ? (
-            <p className="text-sm text-zinc-600">Nothing has changed on this shipment yet.</p>
-          ) : (
-            <table className="w-full bg-white text-left text-sm shadow-sm">
-              <thead className="border-b border-zinc-200 text-zinc-500">
-                <tr>
-                  <th className="p-2 font-medium">When</th>
-                  <th className="p-2 font-medium">Who</th>
-                  <th className="p-2 font-medium">What</th>
-                  <th className="p-2 font-medium">Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {audit.map((entry) => (
-                  <tr key={entry.id} className="border-b border-zinc-100 align-top">
-                    <td className="whitespace-nowrap p-2 text-zinc-600">
-                      {formatDateTime(entry.at)}
-                    </td>
-                    <td className="p-2">{entry.actor}</td>
-                    <td className="p-2 font-mono text-xs">{entry.action}</td>
-                    <td className="p-2">
-                      <pre className="whitespace-pre-wrap text-xs text-zinc-700">
-                        {JSON.stringify(
-                          { before: entry.before ?? undefined, after: entry.after ?? undefined },
-                          null,
-                          1,
-                        )}
-                      </pre>
-                    </td>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_20rem]">
+        <div>
+          {tab === "audit" ? (
+            audit.length === 0 ? (
+              <p className="text-sm text-zinc-600">Nothing has changed on this shipment yet.</p>
+            ) : (
+              <table className="w-full bg-white text-left text-sm shadow-sm">
+                <thead className="border-b border-zinc-200 text-zinc-500">
+                  <tr>
+                    <th className="p-2 font-medium">When</th>
+                    <th className="p-2 font-medium">Who</th>
+                    <th className="p-2 font-medium">What</th>
+                    <th className="p-2 font-medium">Details</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )
-        ) : (
-          <Timeline shipment={shipment} />
-        )}
+                </thead>
+                <tbody>
+                  {audit.map((entry) => (
+                    <tr key={entry.id} className="border-b border-zinc-100 align-top">
+                      <td className="whitespace-nowrap p-2 text-zinc-600">
+                        {formatDateTime(entry.at)}
+                      </td>
+                      <td className="p-2">{entry.actor}</td>
+                      <td className="p-2 font-mono text-xs">{entry.action}</td>
+                      <td className="p-2">
+                        <pre className="whitespace-pre-wrap text-xs text-zinc-700">
+                          {JSON.stringify(
+                            { before: entry.before ?? undefined, after: entry.after ?? undefined },
+                            null,
+                            1,
+                          )}
+                        </pre>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )
+          ) : (
+            <>
+              {notes.length > 0 && (
+                <section className="mb-6" aria-label="Notes">
+                  <h2 className="mb-2 text-sm font-semibold">Notes</h2>
+                  <ul className="space-y-2">
+                    {notes.map((note) => (
+                      <li
+                        key={note.id}
+                        className="rounded border border-zinc-200 bg-white p-3 text-sm"
+                      >
+                        <p className="whitespace-pre-wrap">
+                          {(note.after as { text?: string } | null)?.text}
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-500">
+                          {note.actor} · {formatDateTime(note.at)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              <Timeline shipment={shipment} />
+            </>
+          )}
+        </div>
+        <ActionsPanel shipment={shipment} carriers={carriers} />
       </div>
     </>
   );

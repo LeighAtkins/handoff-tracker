@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": ["DATABASE_URL"],
+  "globalEnv": ["DATABASE_URL", "TEST_DATABASE_URL", "APP_TIME_ZONE", "DEV_ACTOR"],
   "tasks": {
     "generate": {
       "inputs": ["prisma/**", "prisma.config.ts"],
