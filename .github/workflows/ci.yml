@@ -9,12 +9,22 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DATABASE_URL: postgresql://handoff:handoff@localhost:5432/handoff
+
 jobs:
   check:
     runs-on: ubuntu-latest
-    env:
-      # Only used by prisma generate/config; no database is needed for these checks.
-      DATABASE_URL: postgresql://handoff:handoff@localhost:5432/handoff
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: handoff
+          POSTGRES_PASSWORD: handoff
+          POSTGRES_DB: handoff
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U handoff" --health-interval 2s --health-timeout 3s --health-retries 20
     steps:
       - uses: actions/checkout@v4
 
@@ -36,4 +46,40 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
+      # Domain and carrier tests are pure; app use-case tests run against the Postgres service.
       - run: pnpm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: handoff
+          POSTGRES_PASSWORD: handoff
+          POSTGRES_DB: handoff
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U handoff" --health-interval 2s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @handoff/db migrate:deploy
+      - run: pnpm build
+      - run: pnpm --filter @handoff/e2e exec playwright install --with-deps chromium
+      - run: pnpm --filter @handoff/e2e test:e2e
+        env:
+          CI: "true"
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
