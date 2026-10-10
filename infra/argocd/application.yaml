@@ -1,0 +1,25 @@
+# Argo CD watches main and keeps the cluster in line with infra/helm (GitOps).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: handoff-tracker
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/LeighAtkins/handoff-tracker.git
+    targetRevision: main
+    path: infra/helm/handoff-tracker
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-kind.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: handoff
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

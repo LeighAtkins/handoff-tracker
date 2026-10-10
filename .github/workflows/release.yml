@@ -1,0 +1,80 @@
+name: Release
+
+# After CI passes on main: build and push both images to GHCR, then commit the new tag to the
+# Helm values so Argo CD (or anyone deploying from git) picks it up. Pushes made with
+# GITHUB_TOKEN do not trigger workflows, so the tag bump cannot loop.
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - id: tag
+        run: echo "tag=sha-$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push web
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: infra/docker/web.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/leighatkins/handoff-tracker-web:${{ steps.tag.outputs.tag }}
+            ghcr.io/leighatkins/handoff-tracker-web:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      - name: Build and push worker
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: infra/docker/worker.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/leighatkins/handoff-tracker-worker:${{ steps.tag.outputs.tag }}
+            ghcr.io/leighatkins/handoff-tracker-worker:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.event.workflow_run.head_sha }}
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,mode=max,scope=worker
+
+      - name: Commit the new image tag to the Helm values
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          git fetch origin main && git checkout main && git reset --hard origin/main
+          # Only the two `tag:` lines under image.web / image.worker.
+          sed -i -E "s|^(    tag: ).*$|\1${TAG}|" infra/helm/handoff-tracker/values.yaml
+          if git diff --quiet; then echo "No change"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): images ${TAG}"
+          git push origin main
