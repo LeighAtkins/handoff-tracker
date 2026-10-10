@@ -81,6 +81,9 @@ Other ways to run it:
 - **Kubernetes**: `./scripts/kind-up.sh` gives you kind + Argo CD syncing the Helm chart, at
   http://localhost:8095 ([docs/kubernetes.md](docs/kubernetes.md))
 - **Private deployment** for a real trial: [docs/deployment.md](docs/deployment.md)
+- **CKA practice**: [`cka/`](cka/README.md) is a three-node v1.35 cluster running this app, with
+  27 auto-graded exam-style tasks covering the whole CKA curriculum, including troubleshooting
+  scenarios that break the app on purpose
 
 ## Quality
 

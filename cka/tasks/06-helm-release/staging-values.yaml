@@ -1,0 +1,12 @@
+# Base values for a staging copy of Handoff Tracker on the lab cluster.
+image:
+  web: { repository: handoff-web, tag: kind, pullPolicy: Never }
+  worker: { repository: handoff-worker, tag: kind, pullPolicy: Never }
+config:
+  appUrl: http://localhost:8097
+secrets:
+  authSecret: staging-lab-only-secret-not-for-anything-real-012345
+web:
+  hpa: { enabled: false }
+postgres:
+  enabled: true
