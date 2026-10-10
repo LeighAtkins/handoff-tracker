@@ -1,7 +1,7 @@
 # Polling worker. Also carries the Prisma CLI, so it runs migrations too:
 #   docker build -f infra/docker/worker.Dockerfile -t handoff-worker .
 #   docker run --rm -e DATABASE_URL=... -w /app/packages/db handoff-worker node_modules/.bin/prisma migrate deploy
-FROM node:24-alpine AS base
+FROM node:25-alpine AS base
 RUN corepack enable
 WORKDIR /app
 
@@ -17,7 +17,7 @@ COPY --from=prune /app/out/full/ .
 COPY tsconfig.base.json ./
 RUN pnpm turbo run generate --filter=@handoff/db
 
-FROM node:24-alpine AS run
+FROM node:25-alpine AS run
 ENV NODE_ENV=production
 # Runs with node only; see web.Dockerfile for why npm and corepack are removed.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \

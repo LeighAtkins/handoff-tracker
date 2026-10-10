@@ -1,6 +1,6 @@
 # Next.js web app. Build from the repo root:
 #   docker build -f infra/docker/web.Dockerfile -t handoff-web .
-FROM node:24-alpine AS base
+FROM node:25-alpine AS base
 RUN corepack enable
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY tsconfig.base.json ./
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm turbo run build --filter=@handoff/web
 
-FROM node:24-alpine AS run
+FROM node:25-alpine AS run
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 # The server needs node only. Dropping the bundled npm/corepack removes their dependencies
