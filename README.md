@@ -23,6 +23,10 @@ pnpm worker     # poll the fake carriers once; watch DEMO-LIVE-* shipments fill 
 
 See [docs/deployment.md](docs/deployment.md): one small private VM with Docker Compose and automatic HTTPS. `docker compose --profile app up --build` runs the whole stack locally in containers.
 
+## Kubernetes
+
+`./scripts/kind-up.sh` brings up a kind cluster with Argo CD syncing the Helm chart from `main`. See [docs/kubernetes.md](docs/kubernetes.md).
+
 ## Layout
 
 | Path                | What                                                                |
