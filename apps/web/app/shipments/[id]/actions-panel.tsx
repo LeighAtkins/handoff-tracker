@@ -2,6 +2,7 @@ import { STATUSES } from "@handoff/domain";
 import type { ShipmentAggregateRow } from "@handoff/db";
 import { ActionForm, Field } from "@/components/action-form";
 import { nowForInput, TIME_ZONE } from "@/lib/format";
+import type { Dictionary } from "@/lib/i18n";
 import {
   addManualEventAction,
   addNoteAction,
@@ -23,25 +24,27 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 export function ActionsPanel({
   shipment,
   carriers,
+  t,
 }: {
   shipment: ShipmentAggregateRow;
   carriers: { code: string; name: string }[];
+  t: Dictionary;
 }) {
   const hidden = <input type="hidden" name="shipmentId" value={shipment.id} />;
   const now = nowForInput();
   const currentLeg = shipment.legs.at(-1)!;
+  const a = t.actions;
+  const pendingLabel = a.saving;
 
   return (
     <div className="space-y-4">
       {shipment.stuckSince && (
-        <Panel title="Stuck">
-          <p className="mb-3 text-sm text-zinc-600">
-            Chased the carrier or confirmed it is fine? Mark it resolved. It will be flagged again
-            if it goes quiet after the next event.
-          </p>
+        <Panel title={a.stuckTitle}>
+          <p className="mb-3 text-sm text-zinc-600">{a.stuckHelp}</p>
           <ActionForm
             action={markResolvedAction}
-            submitLabel="Mark resolved"
+            submitLabel={a.markResolved}
+            pendingLabel={pendingLabel}
             testId="mark-resolved"
           >
             {hidden}
@@ -49,10 +52,15 @@ export function ActionsPanel({
         </Panel>
       )}
 
-      <Panel title="Add a tracking event">
-        <ActionForm action={addManualEventAction} submitLabel="Add event" testId="manual-event">
+      <Panel title={a.addEventTitle}>
+        <ActionForm
+          action={addManualEventAction}
+          submitLabel={a.addEvent}
+          pendingLabel={pendingLabel}
+          testId="manual-event"
+        >
           {hidden}
-          <Field label="Leg">
+          <Field label={a.leg}>
             <select name="legSequence" defaultValue={currentLeg.sequence}>
               {shipment.legs.map((leg) => (
                 <option key={leg.id} value={leg.sequence}>
@@ -61,26 +69,21 @@ export function ActionsPanel({
               ))}
             </select>
           </Field>
-          <Field label={`When (${TIME_ZONE})`}>
+          <Field label={a.when(TIME_ZONE)}>
             <input type="datetime-local" name="occurredAt" defaultValue={now} max={now} required />
           </Field>
-          <Field label="What the carrier says">
-            <input
-              name="message"
-              required
-              maxLength={500}
-              placeholder="e.g. Arrived at Tokyo depot"
-            />
+          <Field label={a.message}>
+            <input name="message" required maxLength={500} placeholder={a.messagePlaceholder} />
           </Field>
-          <Field label="Location (optional)">
+          <Field label={a.location}>
             <input name="location" maxLength={200} />
           </Field>
-          <Field label="Means">
+          <Field label={a.means}>
             <select name="status" defaultValue="">
-              <option value="">No status change</option>
+              <option value="">{a.noStatusChange}</option>
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
-                  {s.replaceAll("_", " ")}
+                  {t.status[s]}
                 </option>
               ))}
             </select>
@@ -88,13 +91,18 @@ export function ActionsPanel({
         </ActionForm>
       </Panel>
 
-      <Panel title="Record a handoff">
-        <ActionForm action={recordHandoffAction} submitLabel="Record handoff" variant="secondary">
+      <Panel title={a.handoffTitle}>
+        <ActionForm
+          action={recordHandoffAction}
+          submitLabel={a.recordHandoff}
+          pendingLabel={pendingLabel}
+          variant="secondary"
+        >
           {hidden}
-          <Field label="Next carrier">
+          <Field label={a.nextCarrier}>
             <select name="carrierCode" defaultValue="">
               <option value="" disabled>
-                Choose…
+                {a.choose}
               </option>
               {carriers
                 .filter((c) => c.code !== currentLeg.carrierCode)
@@ -105,55 +113,60 @@ export function ActionsPanel({
                 ))}
             </select>
           </Field>
-          <Field label="Their tracking number">
+          <Field label={a.theirTracking}>
             <input name="trackingNumber" required maxLength={64} />
           </Field>
-          <Field label={`When (${TIME_ZONE})`}>
+          <Field label={a.when(TIME_ZONE)}>
             <input type="datetime-local" name="at" defaultValue={now} max={now} required />
           </Field>
         </ActionForm>
       </Panel>
 
-      <Panel title="Override status">
+      <Panel title={a.overrideTitle}>
         {shipment.overrideStatus ? (
-          <ActionForm action={clearOverrideAction} submitLabel="Clear override" variant="secondary">
+          <ActionForm
+            action={clearOverrideAction}
+            submitLabel={a.clearOverride}
+            pendingLabel={pendingLabel}
+            variant="secondary"
+          >
             {hidden}
-            <p className="text-sm text-zinc-600">
-              Clearing returns to the status the carrier events imply.
-            </p>
+            <p className="text-sm text-zinc-600">{a.clearHelp}</p>
           </ActionForm>
         ) : (
           <ActionForm
             action={overrideStatusAction}
-            submitLabel="Override"
+            submitLabel={a.override}
+            pendingLabel={pendingLabel}
             variant="secondary"
             testId="override"
           >
             {hidden}
-            <Field label="Status">
+            <Field label={t.common.status}>
               <select name="status" defaultValue={shipment.status}>
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s.replaceAll("_", " ")}
+                    {t.status[s]}
                   </option>
                 ))}
               </select>
             </Field>
-            <Field label="Reason (required)">
-              <input
-                name="reason"
-                required
-                placeholder="e.g. Customer confirmed delivery by email"
-              />
+            <Field label={a.reason}>
+              <input name="reason" required placeholder={a.reasonPlaceholder} />
             </Field>
           </ActionForm>
         )}
       </Panel>
 
-      <Panel title="Add a note">
-        <ActionForm action={addNoteAction} submitLabel="Add note" variant="secondary">
+      <Panel title={a.noteTitle}>
+        <ActionForm
+          action={addNoteAction}
+          submitLabel={a.addNote}
+          pendingLabel={pendingLabel}
+          variant="secondary"
+        >
           {hidden}
-          <Field label="Note">
+          <Field label={a.note}>
             <textarea name="text" rows={3} required maxLength={2000} />
           </Field>
         </ActionForm>

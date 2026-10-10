@@ -5,20 +5,22 @@ import { getPrisma } from "@handoff/db";
 import { LastChecked } from "@/components/last-checked";
 import { StatusBadge } from "@/components/status-badge";
 import { formatAgo } from "@/lib/format";
+import { getAgo, getT } from "@/lib/i18n";
 
 export const metadata: Metadata = { title: "Stuck" };
 export const dynamic = "force-dynamic";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BUCKETS = [
-  { label: "3–4 days", min: 0, max: 4 },
-  { label: "5–7 days", min: 5, max: 7 },
-  { label: "8–14 days", min: 8, max: 14 },
-  { label: "15+ days", min: 15, max: Infinity },
+  { label: "3–4", min: 0, max: 4 },
+  { label: "5–7", min: 5, max: 7 },
+  { label: "8–14", min: 8, max: 14 },
+  { label: "15+", min: 15, max: Infinity },
 ];
 
 export default async function StuckPage() {
   await requireUser();
+  const [t, ago] = await Promise.all([getT(), getAgo()]);
   const now = new Date();
   const stuck = await getPrisma().shipment.findMany({
     where: { stuckSince: { not: null } },
@@ -51,31 +53,29 @@ export default async function StuckPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Stuck shipments</h1>
-      <p className="mt-1 text-sm text-zinc-600">
-        No new tracking event for 3 days, or 5 days straight after a handoff.
-      </p>
+      <h1 className="text-2xl font-semibold">{t.stuck.title}</h1>
+      <p className="mt-1 text-sm text-zinc-600">{t.stuck.rule}</p>
 
       {rows.length === 0 ? (
         <p className="mt-6 rounded border border-dashed border-zinc-300 bg-white p-8 text-center text-zinc-600">
-          Nothing is stuck. Every open shipment has moved recently.
+          {t.stuck.none}
         </p>
       ) : (
         <>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <Stat label="Stuck" value={rows.length} />
-            <Stat label="Quiet after a handoff" value={rows.filter((r) => r.afterHandoff).length} />
-            <Stat label="Longest quiet" value={`${rows[0]!.daysQuiet}d`} />
+            <Stat label={t.stuck.count} value={rows.length} />
+            <Stat label={t.stuck.afterHandoff} value={rows.filter((r) => r.afterHandoff).length} />
+            <Stat label={t.stuck.longest} value={t.stuck.days(String(rows[0]!.daysQuiet))} />
           </div>
 
-          <h2 className="mt-8 font-medium">By current carrier and days quiet</h2>
+          <h2 className="mt-8 font-medium">{t.stuck.matrix}</h2>
           <table className="mt-2 bg-white text-sm shadow-sm" data-testid="stuck-matrix">
             <thead className="border-b border-zinc-200 text-zinc-500">
               <tr>
-                <th className="p-2 text-left font-medium">Carrier</th>
+                <th className="p-2 text-left font-medium">{t.stuck.carrier}</th>
                 {BUCKETS.map((b) => (
                   <th key={b.label} className="p-2 text-right font-medium">
-                    {b.label}
+                    {t.stuck.days(b.label)}
                   </th>
                 ))}
               </tr>
@@ -94,16 +94,16 @@ export default async function StuckPage() {
             </tbody>
           </table>
 
-          <h2 className="mt-8 font-medium">Oldest first</h2>
+          <h2 className="mt-8 font-medium">{t.stuck.oldestFirst}</h2>
           <table className="mt-2 w-full bg-white text-left text-sm shadow-sm">
             <thead className="border-b border-zinc-200 text-zinc-500">
               <tr>
-                <th className="p-2 font-medium">Order</th>
-                <th className="p-2 font-medium">Status</th>
-                <th className="p-2 font-medium">Waiting on</th>
-                <th className="p-2 font-medium">Days quiet</th>
-                <th className="p-2 font-medium">Last event</th>
-                <th className="p-2 font-medium">Last checked</th>
+                <th className="p-2 font-medium">{t.common.order}</th>
+                <th className="p-2 font-medium">{t.common.status}</th>
+                <th className="p-2 font-medium">{t.stuck.waitingOn}</th>
+                <th className="p-2 font-medium">{t.stuck.daysQuiet}</th>
+                <th className="p-2 font-medium">{t.common.lastEvent}</th>
+                <th className="p-2 font-medium">{t.common.lastChecked}</th>
               </tr>
             </thead>
             <tbody>
@@ -126,11 +126,11 @@ export default async function StuckPage() {
                       {current.trackingNumber}
                     </span>
                     {afterHandoff && (
-                      <span className="ml-2 text-xs text-violet-800">since handoff</span>
+                      <span className="ml-2 text-xs text-violet-800">{t.stuck.sinceHandoff}</span>
                     )}
                   </td>
                   <td className="p-2 tabular-nums">{daysQuiet}</td>
-                  <td className="p-2 text-zinc-600">{formatAgo(shipment.lastEventAt, now)}</td>
+                  <td className="p-2 text-zinc-600">{formatAgo(shipment.lastEventAt, now, ago)}</td>
                   <td className="p-2">
                     <LastChecked leg={current} now={now} />
                   </td>

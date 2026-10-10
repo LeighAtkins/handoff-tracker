@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth/session";
 import { getPrisma } from "@handoff/db";
 import { ActionForm, Field } from "@/components/action-form";
 import { formatDateTime } from "@/lib/format";
+import { getT } from "@/lib/i18n";
 import { uploadImportAction } from "./actions";
 
 export const metadata: Metadata = { title: "Import" };
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ImportPage() {
   await requireUser("OPERATOR");
+  const t = await getT();
   const recent = await getPrisma().importBatch.findMany({
     orderBy: { createdAt: "desc" },
     take: 10,
@@ -18,22 +20,19 @@ export default async function ImportPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Import orders</h1>
+      <h1 className="text-2xl font-semibold">{t.importPage.title}</h1>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_22rem]">
         <section className="rounded border border-zinc-200 bg-white p-5">
-          <ActionForm action={uploadImportAction} submitLabel="Upload and preview" testId="upload">
-            <Field label="CSV file (up to 5 MB)">
+          <ActionForm action={uploadImportAction} submitLabel={t.importPage.upload} testId="upload">
+            <Field label={t.importPage.file}>
               <input type="file" name="file" accept=".csv,text/csv" required />
             </Field>
           </ActionForm>
-          <p className="mt-4 text-sm text-zinc-600">
-            Nothing is imported until you have checked the preview. Importing the same file twice
-            updates orders instead of duplicating them.
-          </p>
+          <p className="mt-4 text-sm text-zinc-600">{t.importPage.help}</p>
         </section>
 
         <aside className="text-sm text-zinc-700">
-          <h2 className="font-medium">Accepted formats</h2>
+          <h2 className="font-medium">{t.importPage.formats}</h2>
           <p className="mt-2">
             <strong>Shopify order export</strong> with <code>Tracking Number</code> and{" "}
             <code>Tracking Company</code> columns added.
@@ -52,7 +51,7 @@ export default async function ImportPage() {
 
       {recent.length > 0 && (
         <>
-          <h2 className="mt-10 font-medium">Recent imports</h2>
+          <h2 className="mt-10 font-medium">{t.importPage.recent}</h2>
           <table className="mt-2 w-full bg-white text-left text-sm shadow-sm">
             <thead className="border-b border-zinc-200 text-zinc-500">
               <tr>

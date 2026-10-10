@@ -2,12 +2,14 @@ import type { ShipmentAggregateRow } from "@handoff/db";
 import { LastChecked } from "@/components/last-checked";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDateTime } from "@/lib/format";
+import { getT } from "@/lib/i18n";
 
 /**
  * Vertical timeline grouped by Leg, newest first, with a marker where responsibility passed
  * from one carrier to the next.
  */
-export function Timeline({ shipment }: { shipment: ShipmentAggregateRow }) {
+export async function Timeline({ shipment }: { shipment: ShipmentAggregateRow }) {
+  const t = await getT();
   const legs = [...shipment.legs].reverse();
 
   return (
@@ -23,7 +25,7 @@ export function Timeline({ shipment }: { shipment: ShipmentAggregateRow }) {
             >
               <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-100 px-4 py-2">
                 <h3 className="font-medium">
-                  Leg {leg.sequence} · {leg.carrierCode}{" "}
+                  {t.detail.leg} {leg.sequence} · {leg.carrierCode}{" "}
                   <span className="font-mono text-sm text-zinc-600">{leg.trackingNumber}</span>
                 </h3>
                 <p className="text-xs text-zinc-500">
@@ -31,7 +33,7 @@ export function Timeline({ shipment }: { shipment: ShipmentAggregateRow }) {
                   {leg.endedAt ? formatDateTime(leg.endedAt) : "now"}
                   {!leg.endedAt && (
                     <>
-                      {" · checked "}
+                      {` · ${t.detail.checked} `}
                       <LastChecked leg={leg} />
                     </>
                   )}
@@ -39,7 +41,7 @@ export function Timeline({ shipment }: { shipment: ShipmentAggregateRow }) {
               </header>
               {events.length === 0 ? (
                 <p className="px-4 py-3 text-sm text-zinc-500">
-                  No events from {leg.carrierCode} yet.
+                  {t.detail.noEvents(leg.carrierCode)}
                 </p>
               ) : (
                 <ul className="divide-y divide-zinc-100">
@@ -54,7 +56,10 @@ export function Timeline({ shipment }: { shipment: ShipmentAggregateRow }) {
                       <div>
                         <p>{event.rawMessage}</p>
                         <p className="text-xs text-zinc-500">
-                          {[event.location, event.source === "MANUAL" ? "entered manually" : null]
+                          {[
+                            event.location,
+                            event.source === "MANUAL" ? t.detail.enteredManually : null,
+                          ]
                             .filter(Boolean)
                             .join(" · ")}
                         </p>
@@ -67,7 +72,7 @@ export function Timeline({ shipment }: { shipment: ShipmentAggregateRow }) {
                             className="text-xs text-amber-700"
                             title="No mapping for this carrier message yet"
                           >
-                            unrecognised
+                            {t.detail.unrecognised}
                           </span>
                         )}
                       </div>
@@ -83,8 +88,11 @@ export function Timeline({ shipment }: { shipment: ShipmentAggregateRow }) {
               >
                 <span className="h-6 w-0.5 bg-violet-300" aria-hidden />
                 <span>
-                  Handoff {handoffIn.fromLeg.carrierCode} → {handoffIn.toLeg.carrierCode} at{" "}
-                  {formatDateTime(handoffIn.detectedAt)}
+                  {t.detail.handoff(
+                    handoffIn.fromLeg.carrierCode,
+                    handoffIn.toLeg.carrierCode,
+                    formatDateTime(handoffIn.detectedAt),
+                  )}
                   <span className="text-zinc-500">
                     {" "}
                     · {handoffIn.source.replaceAll("_", " ").toLowerCase()}
