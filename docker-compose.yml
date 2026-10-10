@@ -1,3 +1,5 @@
+# Local development: `pnpm db:up` starts only Postgres.
+# Whole stack in containers: `docker compose --profile app up --build`  (web on http://localhost:3200)
 services:
   postgres:
     image: postgres:17-alpine
@@ -14,6 +16,42 @@ services:
       interval: 2s
       timeout: 3s
       retries: 20
+
+  migrate:
+    profiles: [app]
+    build: { context: ., dockerfile: infra/docker/worker.Dockerfile }
+    image: handoff-worker
+    command: ["pnpm", "--dir", "/app/packages/db", "migrate:deploy"]
+    environment: &app-env
+      DATABASE_URL: postgresql://handoff:handoff@postgres:5432/handoff?schema=public
+      APP_TIME_ZONE: Asia/Tokyo
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  web:
+    profiles: [app]
+    build: { context: ., dockerfile: infra/docker/web.Dockerfile }
+    image: handoff-web
+    ports:
+      - "3200:3000"
+    environment:
+      <<: *app-env
+      APP_URL: http://localhost:3200
+      AUTH_SECRET: compose-local-only-secret-change-me-0123456789
+      # The developer login only answers on localhost; fine for this local stack, never on a server.
+      AUTH_DEV_LOGIN: "true"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    profiles: [app]
+    image: handoff-worker
+    command: ["node", "--import", "tsx", "src/index.ts", "--loop"]
+    environment:
+      <<: *app-env
+      WORKER_INTERVAL_SECONDS: "300"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
 
 volumes:
   pgdata:
