@@ -1,0 +1,202 @@
+{
+  "journeys": [
+    {
+      "carrierCode": "4PX",
+      "trackingNumber": "4PXDEMO0001CN",
+      "events": [
+        {
+          "offsetHours": -96,
+          "rawStatus": "INFO_RECEIVED",
+          "rawMessage": "Shipment information received",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -90,
+          "rawStatus": "PICKED_UP",
+          "rawMessage": "Parcel picked up",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -70,
+          "rawStatus": "DEPARTED",
+          "rawMessage": "Departed from sorting centre",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -30,
+          "rawStatus": "ARRIVED_DEST",
+          "rawMessage": "Arrived at destination country",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": -10,
+          "rawStatus": "HANDOVER",
+          "rawMessage": "Handed over to last-mile carrier: Sagawa (900000000101)",
+          "location": "Osaka, JP"
+        }
+      ]
+    },
+    {
+      "carrierCode": "SAGAWA",
+      "trackingNumber": "900000000101",
+      "events": [
+        {
+          "offsetHours": 2,
+          "rawStatus": "集荷",
+          "rawMessage": "荷物を受け付けました",
+          "location": "大阪営業所"
+        },
+        {
+          "offsetHours": 20,
+          "rawStatus": "輸送中",
+          "rawMessage": "輸送中です",
+          "location": "東京中継センター"
+        },
+        {
+          "offsetHours": 80,
+          "rawStatus": "配達中",
+          "rawMessage": "配達中です",
+          "location": "東京営業所"
+        },
+        {
+          "offsetHours": 90,
+          "rawStatus": "配達完了",
+          "rawMessage": "配達が完了しました",
+          "location": "東京営業所"
+        }
+      ]
+    },
+    {
+      "carrierCode": "4PX",
+      "trackingNumber": "4PXDEMO0002CN",
+      "events": [
+        {
+          "offsetHours": -120,
+          "rawStatus": "INFO_RECEIVED",
+          "rawMessage": "Shipment information received",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -110,
+          "rawStatus": "PICKED_UP",
+          "rawMessage": "Parcel picked up",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -96,
+          "rawStatus": "DEPARTED",
+          "rawMessage": "Departed from sorting centre",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -72,
+          "rawStatus": "ARRIVED_DEST",
+          "rawMessage": "Arrived at destination country",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": -60,
+          "rawStatus": "HANDOVER",
+          "rawMessage": "Handed over to last-mile carrier: Sagawa (900000000102)",
+          "location": "Osaka, JP"
+        }
+      ]
+    },
+    {
+      "carrierCode": "SAGAWA",
+      "trackingNumber": "900000000102",
+      "events": [
+        {
+          "offsetHours": 300,
+          "rawStatus": "集荷",
+          "rawMessage": "荷物を受け付けました",
+          "location": "大阪営業所"
+        }
+      ]
+    },
+    {
+      "carrierCode": "4PX",
+      "trackingNumber": "4PXDEMO0003CN",
+      "events": [
+        {
+          "offsetHours": -100,
+          "rawStatus": "INFO_RECEIVED",
+          "rawMessage": "Shipment information received",
+          "location": "Guangzhou, CN"
+        },
+        {
+          "offsetHours": -90,
+          "rawStatus": "PICKED_UP",
+          "rawMessage": "Parcel picked up",
+          "location": "Guangzhou, CN"
+        },
+        {
+          "offsetHours": -80,
+          "rawStatus": "DEPARTED",
+          "rawMessage": "Departed from sorting centre",
+          "location": "Guangzhou, CN"
+        },
+        {
+          "offsetHours": 200,
+          "rawStatus": "ARRIVED_DEST",
+          "rawMessage": "Arrived at destination country",
+          "location": "Osaka, JP"
+        }
+      ]
+    },
+    {
+      "carrierCode": "4PX",
+      "trackingNumber": "4PXDEMO0004CN",
+      "events": [
+        {
+          "offsetHours": -80,
+          "rawStatus": "PICKED_UP",
+          "rawMessage": "Parcel picked up",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -50,
+          "rawStatus": "ARRIVED_DEST",
+          "rawMessage": "Arrived at destination country",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": -40,
+          "rawStatus": "CUSTOMS_HOLD",
+          "rawMessage": "Held by customs: inspection required",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": 40,
+          "rawStatus": "CUSTOMS_CLEARED",
+          "rawMessage": "Customs clearance completed",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": 50,
+          "rawStatus": "HANDOVER",
+          "rawMessage": "Handed over to last-mile carrier: Sagawa (900000000104)",
+          "location": "Osaka, JP"
+        }
+      ]
+    },
+    {
+      "carrierCode": "SAGAWA",
+      "trackingNumber": "900000000104",
+      "events": [
+        {
+          "offsetHours": 60,
+          "rawStatus": "集荷",
+          "rawMessage": "荷物を受け付けました",
+          "location": "大阪営業所"
+        },
+        {
+          "offsetHours": 130,
+          "rawStatus": "配達中",
+          "rawMessage": "配達中です",
+          "location": "横浜営業所"
+        }
+      ]
+    }
+  ]
+}

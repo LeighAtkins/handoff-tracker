@@ -8,9 +8,13 @@
   },
   "scripts": {
     "typecheck": "tsc",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "devDependencies": {
     "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@handoff/domain": "workspace:*",
+    "zod": "^4.6.5"
   }
 }
