@@ -13,7 +13,9 @@
   "dependencies": {
     "@handoff/carriers": "workspace:*",
     "@handoff/db": "workspace:*",
-    "@handoff/domain": "workspace:*"
+    "@handoff/domain": "workspace:*",
+    "csv-parse": "^7.0.3",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",

@@ -156,3 +156,26 @@ model User {
   email String @unique
   role  Role   @default(VIEWER)
 }
+
+enum ImportStatus {
+  PENDING
+  IMPORTED
+  CANCELLED
+}
+
+/// An uploaded CSV waiting for the operator to confirm (or cancel) after previewing it.
+model ImportBatch {
+  id          String       @id @default(cuid())
+  fileName    String
+  shape       String
+  status      ImportStatus @default(PENDING)
+  totalRows   Int
+  /// Validated rows, ready to import.
+  rows        Json
+  /// [{ row, message }] for rows that failed validation.
+  errors      Json
+  summary     Json?
+  createdBy   String
+  createdAt   DateTime     @default(now())
+  completedAt DateTime?
+}
