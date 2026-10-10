@@ -57,14 +57,16 @@ model Order {
 }
 
 model Shipment {
-  id          String         @id @default(cuid())
-  orderId     String
-  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  status      ShipmentStatus @default(PENDING)
-  lastEventAt DateTime?
-  stuckSince  DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  orderId         String
+  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status          ShipmentStatus @default(PENDING)
+  lastEventAt     DateTime?
+  stuckSince      DateTime?
+  /// Set when an operator marks a stuck Shipment resolved. See stuck rules in ADR-0002.
+  stuckResolvedAt DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   // Manual override: all four are set together, or none are.
   overrideStatus ShipmentStatus?
@@ -110,16 +112,17 @@ model Handoff {
 }
 
 model TrackingEvent {
-  id               String         @id @default(cuid())
+  id               String          @id @default(cuid())
   legId            String
-  leg              Leg            @relation(fields: [legId], references: [id], onDelete: Cascade)
+  leg              Leg             @relation(fields: [legId], references: [id], onDelete: Cascade)
   occurredAt       DateTime
   rawStatus        String
   rawMessage       String
   location         String?
-  normalisedStatus ShipmentStatus
+  /// Null when the carrier message is not recognised yet; such events never change status.
+  normalisedStatus ShipmentStatus?
   source           EventSource
-  ingestedAt       DateTime       @default(now())
+  ingestedAt       DateTime        @default(now())
 
   // Makes polling idempotent: re-fetching the same history inserts nothing new.
   @@unique([legId, occurredAt, rawMessage])
