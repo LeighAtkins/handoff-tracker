@@ -1,5 +1,14 @@
 # Private deployment on one small VM: Caddy (automatic HTTPS) -> web, plus worker and Postgres.
 # Usage (on the VM, from infra/deploy):  docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+# Tracking sources (ADR-0003, ADR-0004), for web (live lookups) and worker. Empty means "not connected".
+x-tracking-keys: &tracking-keys
+  FOURPX_APP_KEY: ${FOURPX_APP_KEY:-}
+  FOURPX_APP_SECRET: ${FOURPX_APP_SECRET:-}
+  FOURPX_API_URL: ${FOURPX_API_URL:-}
+  SHIP24_API_KEY: ${SHIP24_API_KEY:-}
+  SEVENTEEN_TRACK_API_KEY: ${SEVENTEEN_TRACK_API_KEY:-}
+  AFTERSHIP_API_KEY: ${AFTERSHIP_API_KEY:-}
+
 services:
   caddy:
     image: caddy:2-alpine
@@ -42,12 +51,13 @@ services:
     image: ${WEB_IMAGE:-ghcr.io/leighatkins/handoff-tracker-web:latest}
     restart: unless-stopped
     environment:
-      <<: *app-env
+      <<: [*app-env, *tracking-keys]
       APP_URL: https://${DOMAIN}
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
       ALLOWED_EMAIL_DOMAIN: ${ALLOWED_EMAIL_DOMAIN:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET}
+      DELIVERY_TARGET_DAYS: ${DELIVERY_TARGET_DAYS:-7}
       # AUTH_DEV_LOGIN is deliberately absent. Never set it here.
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -57,11 +67,8 @@ services:
     restart: unless-stopped
     command: ["node", "--import", "tsx", "src/index.ts", "--loop"]
     environment:
-      <<: *app-env
+      <<: [*app-env, *tracking-keys]
       WORKER_INTERVAL_SECONDS: "300"
-      SHIP24_API_KEY: ${SHIP24_API_KEY:-}
-      SEVENTEEN_TRACK_API_KEY: ${SEVENTEEN_TRACK_API_KEY:-}
-      AFTERSHIP_API_KEY: ${AFTERSHIP_API_KEY:-}
     depends_on:
       migrate: { condition: service_completed_successfully }
 

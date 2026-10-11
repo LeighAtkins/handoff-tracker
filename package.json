@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "turbo run dev",
+    "demo": "bash scripts/demo.sh",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
@@ -22,7 +23,8 @@
     "worker": "pnpm --filter @handoff/worker start",
     "worker:loop": "pnpm --filter @handoff/worker start --loop",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
-    "trial:aggregators": "pnpm --filter @handoff/carriers trial"
+    "trial:aggregators": "pnpm --filter @handoff/carriers trial",
+    "trial:4px": "pnpm --filter @handoff/carriers trial"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -27,7 +27,7 @@ spec:
   egress:
     {{- include "ht.dnsEgress" . | nindent 4 }}
     {{- include "ht.dbEgress" . | nindent 4 }}
-    # Google sign-in: the OAuth token endpoint is on the public internet.
+    # Google sign-in, and live lookups on /track (4PX's API or an aggregator), are on the public internet.
     - to:
         - ipBlock: { cidr: 0.0.0.0/0, except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16] }
       ports: [{ protocol: TCP, port: 443 }]

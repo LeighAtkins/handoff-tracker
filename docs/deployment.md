@@ -76,7 +76,10 @@ and the VM too. Nothing else holds customer data.
 | `ALLOWED_EMAIL_DOMAIN`                      | web         | Verified Google accounts at this domain may sign in as viewers             |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | web         | OAuth client from step 1                                                   |
 | `APP_TIME_ZONE`                             | web         | Times shown to staff; default `Asia/Tokyo`                                 |
-| `SHIP24_API_KEY` etc.                       | worker      | Only the aggregator in use                                                 |
+| `FOURPX_APP_KEY` / `FOURPX_APP_SECRET`      | web, worker | 4PX Open Platform keys (ADR-0004); live lookups try 4PX first              |
+| `FOURPX_API_URL`                            | web, worker | Optional; the test platform URL while using 4PX's test keys                |
+| `SHIP24_API_KEY` etc.                       | web, worker | Only the aggregator in use; the web app uses it for live lookups           |
+| `DELIVERY_TARGET_DAYS`                      | web         | Door-to-door target on the overview; default 7                             |
 | `WORKER_INTERVAL_SECONDS`                   | worker      | Loop interval; carrier poll intervals still apply                          |
 | `AUTH_DEV_LOGIN`                            | web         | **Local development and CI only.** Also restricted to localhost            |
 

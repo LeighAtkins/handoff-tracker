@@ -9,6 +9,8 @@ data:
   ALLOWED_EMAIL_DOMAIN: {{ .Values.config.allowedEmailDomain | quote }}
   METRICS_MANUAL_CHECK_MINUTES: {{ .Values.config.metricsManualCheckMinutes | quote }}
   METRICS_APP_CHECK_MINUTES: {{ .Values.config.metricsAppCheckMinutes | quote }}
+  DELIVERY_TARGET_DAYS: {{ .Values.config.deliveryTargetDays | quote }}
+  FOURPX_API_URL: {{ .Values.config.fourPxApiUrl | quote }}
   {{- if .Values.config.authDevLogin }}
   AUTH_DEV_LOGIN: "true"
   {{- end }}
