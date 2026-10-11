@@ -185,3 +185,29 @@ model ImportBatch {
   createdAt   DateTime     @default(now())
   completedAt DateTime?
 }
+
+enum LookupState {
+  READY
+  PENDING
+  NOT_FOUND
+  ERROR
+}
+
+/// A tracking number someone looked up on /track, with what the provider answered. Reloading the
+/// page reuses it instead of spending another call (aggregator free tiers are small), and it
+/// feeds the "recent lookups" list. The number is not linked to an Order unless someone tracks it.
+model TrackingLookup {
+  id             String      @id @default(cuid())
+  trackingNumber String      @unique
+  /// 4PX, SHIP24, 17TRACK, AFTERSHIP or SAMPLE.
+  provider       String
+  state          LookupState
+  /// The provider's answer (events, last-mile carrier, facts) as stored by packages/app/src/lookup.ts.
+  result         Json?
+  error          String?
+  fetchedAt      DateTime
+  lookedUpBy     String
+  lookedUpAt     DateTime    @default(now())
+
+  @@index([lookedUpAt])
+}
