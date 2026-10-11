@@ -1,9 +1,11 @@
 /**
- * Aggregator trial for ADR-0003: runs the same real 4PX -> Sagawa tracking numbers through each
- * aggregator whose API key is set, and scores whether the Sagawa leg appears.
+ * Tracking trial for ADR-0003 and ADR-0004: runs the same real 4PX -> Sagawa tracking numbers
+ * through 4PX's own API and each aggregator whose key is set, and scores whether the Sagawa leg
+ * appears.
  *
  *   1. Put one 4PX tracking number per line in data/trial-numbers.txt (repo root, gitignored).
- *   2. Set any of SHIP24_API_KEY, SEVENTEEN_TRACK_API_KEY, AFTERSHIP_API_KEY in .env.
+ *   2. Set FOURPX_APP_KEY + FOURPX_APP_SECRET and/or any of SHIP24_API_KEY,
+ *      SEVENTEEN_TRACK_API_KEY, AFTERSHIP_API_KEY in .env.
  *   3. pnpm trial:aggregators   (17TRACK registers numbers on the first run; run again a few hours later)
  *
  * Per-number results (which contain real tracking numbers) are written under data/trial/ only.
@@ -13,11 +15,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { config } from "dotenv";
 import {
-  createAfterShipClient,
-  createSeventeenTrackClient,
-  createShip24Client,
+  classifyStage,
   normalise,
-  type AggregatorClient,
+  trackingProviders,
+  type AggregatorResult,
   type AttributedEvent,
 } from "../src";
 
@@ -39,24 +40,34 @@ interface NumberResult {
 
 function score(
   trackingNumber: string,
-  events: AttributedEvent[],
-  handoff: { nextCarrierCode: string; nextTrackingNumber: string } | null,
+  { events, handoff, facts }: Pick<AggregatorResult, "events" | "handoff" | "facts">,
 ): NumberResult {
   const fourPx = events.filter((e) => e.carrierCode === "4PX" || e.carrierCode === null);
   const sagawa = events.filter((e) => e.carrierCode === "SAGAWA");
-  const lastFourPx = Math.max(...fourPx.map((e) => e.occurredAt.getTime()));
-  const firstSagawa = Math.min(...sagawa.map((e) => e.occurredAt.getTime()));
+  const times = (list: AttributedEvent[]) => list.map((e) => e.occurredAt.getTime());
+  const stage = (e: AttributedEvent) =>
+    classifyStage(e.carrierCode ?? "4PX", e, e.carrierCode === "SAGAWA" ? 2 : 1);
+  // 4PX's own API reports the handover and Sagawa's first scan as its own codes; aggregators
+  // show them as the switch from 4PX's events to Sagawa's.
+  const handedOver = Math.min(...times(events.filter((e) => stage(e) === "HANDED_OFF")));
+  const firstScan = Math.min(...times(events.filter((e) => stage(e) === "LAST_MILE_ACCEPTED")));
+  const lag =
+    Number.isFinite(handedOver) && Number.isFinite(firstScan)
+      ? firstScan - handedOver
+      : sagawa.length && fourPx.length
+        ? Math.min(...times(sagawa)) - Math.max(...times(fourPx))
+        : null;
+  const lastMile = handoff
+    ? { carrierCode: handoff.nextCarrierCode, trackingNumber: handoff.nextTrackingNumber }
+    : (facts?.lastMile ?? null);
   return {
     trackingNumber,
     events: events.length,
     fourPxEvents: fourPx.length,
     sagawaEvents: sagawa.length,
-    sagawaAppeared: sagawa.length > 0 || handoff?.nextCarrierCode === "SAGAWA",
-    nextTrackingNumber: handoff?.nextTrackingNumber ?? null,
-    handoffLagHours:
-      sagawa.length && fourPx.length
-        ? Math.round(((firstSagawa - lastFourPx) / 3_600_000) * 10) / 10
-        : null,
+    sagawaAppeared: sagawa.length > 0 || lastMile?.carrierCode === "SAGAWA",
+    nextTrackingNumber: lastMile?.trackingNumber ?? null,
+    handoffLagHours: lag === null ? null : Math.round((lag / 3_600_000) * 10) / 10,
     unrecognised: events.filter((e) => normalise(e.carrierCode ?? "4PX", e) === null).length,
   };
 }
@@ -76,16 +87,12 @@ async function main() {
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith("#"));
-  const clients: AggregatorClient[] = [
-    process.env.SHIP24_API_KEY && createShip24Client({ apiKey: process.env.SHIP24_API_KEY }),
-    process.env.SEVENTEEN_TRACK_API_KEY &&
-      createSeventeenTrackClient({ apiKey: process.env.SEVENTEEN_TRACK_API_KEY }),
-    process.env.AFTERSHIP_API_KEY &&
-      createAfterShipClient({ apiKey: process.env.AFTERSHIP_API_KEY }),
-  ].filter((c): c is AggregatorClient => Boolean(c));
+  const clients = trackingProviders()
+    .filter((p) => p.configured)
+    .map((p) => p.client);
   if (!clients.length)
     throw new Error(
-      "Set at least one of SHIP24_API_KEY, SEVENTEEN_TRACK_API_KEY, AFTERSHIP_API_KEY",
+      "Set FOURPX_APP_KEY + FOURPX_APP_SECRET, or one of SHIP24_API_KEY, SEVENTEEN_TRACK_API_KEY, AFTERSHIP_API_KEY",
     );
 
   const results: Record<string, NumberResult[]> = {};
@@ -93,11 +100,12 @@ async function main() {
     results[client.name] = [];
     for (const trackingNumber of numbers) {
       try {
-        const { events, handoff } = await client.track(trackingNumber, "4PX");
-        results[client.name]!.push(score(trackingNumber, events, handoff));
+        results[client.name]!.push(
+          score(trackingNumber, await client.track(trackingNumber, "4PX")),
+        );
       } catch (error) {
         results[client.name]!.push({
-          ...score(trackingNumber, [], null),
+          ...score(trackingNumber, { events: [], handoff: null }),
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -106,9 +114,9 @@ async function main() {
   }
 
   const lines = [
-    `Aggregator trial, ${new Date().toISOString().slice(0, 10)}, ${numbers.length} 4PX -> Sagawa numbers`,
+    `Tracking trial, ${new Date().toISOString().slice(0, 10)}, ${numbers.length} 4PX -> Sagawa numbers`,
     "",
-    "| Aggregator | Tracked | Sagawa leg appeared | Next tracking number given | Median handoff lag (h) | Events | Unrecognised messages | Errors |",
+    "| Source | Tracked | Sagawa leg appeared | Next tracking number given | Median handoff lag (h) | Events | Unrecognised messages | Errors |",
     "| --- | --- | --- | --- | --- | --- | --- | --- |",
   ];
   for (const [name, rows] of Object.entries(results)) {

@@ -3,4 +3,7 @@ export * from "./fake";
 export * from "./manual";
 export * from "./normaliser";
 export * from "./registry";
+export * from "./sample";
 export * from "./aggregators";
+export * from "./fourpx";
+export * from "./stages";
