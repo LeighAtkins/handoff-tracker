@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { isStatus, STATUSES } from "@handoff/domain";
+import { journeyInputFromShipment } from "@handoff/app";
+import { analyseJourney, isStatus, STATUSES } from "@handoff/domain";
 import { requireUser } from "@/lib/auth/session";
-import { getPrisma, type Prisma } from "@handoff/db";
+import { getPrisma, shipmentAggregateInclude, type Prisma } from "@handoff/db";
+import { CarrierChip, EmptyState, PageHeader, button, input } from "@/components/ui";
 import { LastChecked } from "@/components/last-checked";
 import { StatusBadge, StuckBadge } from "@/components/status-badge";
 import { formatAgo } from "@/lib/format";
@@ -34,7 +36,7 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
 
   const shipments = await getPrisma().shipment.findMany({
     where,
-    include: { order: true, legs: { orderBy: { sequence: "asc" }, include: { carrier: true } } },
+    include: { ...shipmentAggregateInclude, order: true },
     orderBy: [
       { stuckSince: { sort: "asc", nulls: "last" } },
       { lastEventAt: { sort: "desc", nulls: "last" } },
@@ -42,26 +44,19 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
     take: 200,
   });
 
+  const now = new Date();
   return (
     <>
-      <h1 className="text-2xl font-semibold">{t.shipments.title}</h1>
+      <PageHeader title={t.shipments.title} />
 
       <form className="mt-4 flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">
           <span className="text-zinc-600">{t.shipments.search}</span>
-          <input
-            name="q"
-            defaultValue={query}
-            className="w-64 rounded border border-zinc-300 bg-white px-2 py-1.5"
-          />
+          <input name="q" defaultValue={query} className={`${input} w-64`} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-zinc-600">{t.common.status}</span>
-          <select
-            name="status"
-            defaultValue={status}
-            className="rounded border border-zinc-300 bg-white px-2 py-1.5"
-          >
+          <select name="status" defaultValue={status} className={input}>
             <option value="">{t.shipments.any}</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -74,8 +69,8 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
           <input type="checkbox" name="stuck" value="1" defaultChecked={stuck === "1"} />
           {t.shipments.stuckOnly}
         </label>
-        <button className="rounded bg-zinc-900 px-3 py-1.5 text-white">{t.shipments.filter}</button>
-        <Link href="/shipments" className="py-1.5 text-zinc-600 underline">
+        <button className={button.primary}>{t.shipments.filter}</button>
+        <Link href="/shipments" className={`${button.link} py-2`}>
           {t.shipments.clear}
         </Link>
       </form>
@@ -85,51 +80,73 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Se
       </p>
 
       {shipments.length === 0 ? (
-        <p className="mt-6 rounded border border-dashed border-zinc-300 bg-white p-8 text-center text-zinc-600">
-          {t.shipments.none}
-        </p>
+        <div className="mt-6">
+          <EmptyState>{t.shipments.none}</EmptyState>
+        </div>
       ) : (
-        <table className="mt-2 w-full border-collapse bg-white text-left text-sm shadow-sm">
-          <thead className="border-b border-zinc-200 text-zinc-500">
-            <tr>
-              <th className="p-2 font-medium">{t.common.order}</th>
-              <th className="p-2 font-medium">{t.common.status}</th>
-              <th className="p-2 font-medium">{t.shipments.legs}</th>
-              <th className="p-2 font-medium">{t.shipments.currentTracking}</th>
-              <th className="p-2 font-medium">{t.common.lastEvent}</th>
-              <th className="p-2 font-medium">{t.common.lastChecked}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shipments.map((shipment) => {
-              const current = shipment.legs.at(-1);
-              return (
-                <tr key={shipment.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                  <td className="p-2 font-mono">
-                    <Link
-                      href={`/shipments/${shipment.id}`}
-                      className="underline-offset-2 hover:underline"
-                    >
-                      {shipment.order.sourceOrderNumber}
-                    </Link>
-                  </td>
-                  <td className="space-x-1 p-2">
-                    <StatusBadge status={shipment.status} />
-                    {shipment.stuckSince && <StuckBadge />}
-                  </td>
-                  <td className="p-2">{shipment.legs.map((leg) => leg.carrierCode).join(" → ")}</td>
-                  <td className="p-2 font-mono text-xs">{current?.trackingNumber}</td>
-                  <td className="p-2 text-zinc-600">
-                    {formatAgo(shipment.lastEventAt, undefined, ago)}
-                  </td>
-                  <td className="p-2">
-                    <LastChecked leg={current} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="mt-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead className="border-b border-zinc-200 text-xs text-zinc-500">
+              <tr>
+                <th className="p-2 pl-4 font-medium">{t.common.order}</th>
+                <th className="p-2 font-medium">{t.common.status}</th>
+                <th className="p-2 font-medium">{t.journey.nowWith}</th>
+                <th className="p-2 font-medium">{t.shipments.legs}</th>
+                <th className="p-2 font-medium">{t.shipments.currentTracking}</th>
+                <th className="p-2 font-medium">{t.common.lastEvent}</th>
+                <th className="p-2 font-medium">{t.common.lastChecked}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shipments.map((shipment) => {
+                const current = shipment.legs.at(-1);
+                const { position, finished } = analyseJourney(
+                  journeyInputFromShipment(shipment),
+                  now,
+                );
+                return (
+                  <tr
+                    key={shipment.id}
+                    className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50"
+                  >
+                    <td className="p-2 pl-4 font-mono">
+                      <Link
+                        href={`/shipments/${shipment.id}`}
+                        className="underline-offset-2 hover:underline"
+                      >
+                        {shipment.order.sourceOrderNumber}
+                      </Link>
+                    </td>
+                    <td className="space-x-1 p-2">
+                      <StatusBadge status={shipment.status} />
+                      {shipment.stuckSince && <StuckBadge />}
+                    </td>
+                    <td className="p-2 text-zinc-700">
+                      {position && !finished ? t.milestones[position] : "—"}
+                    </td>
+                    <td className="p-2">
+                      <span className="flex items-center gap-1">
+                        {shipment.legs.map((leg, i) => (
+                          <span key={leg.id} className="flex items-center gap-1">
+                            {i > 0 && <span className="text-zinc-400">→</span>}
+                            <CarrierChip code={leg.carrierCode} />
+                          </span>
+                        ))}
+                      </span>
+                    </td>
+                    <td className="p-2 font-mono text-xs">{current?.trackingNumber}</td>
+                    <td className="p-2 text-zinc-600">
+                      {formatAgo(shipment.lastEventAt, undefined, ago)}
+                    </td>
+                    <td className="p-2">
+                      <LastChecked leg={current} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </>
   );

@@ -20,9 +20,9 @@ export default async function ImportPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">{t.importPage.title}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t.importPage.title}</h1>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_22rem]">
-        <section className="rounded border border-zinc-200 bg-white p-5">
+        <section className="rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-5">
           <ActionForm action={uploadImportAction} submitLabel={t.importPage.upload} testId="upload">
             <Field label={t.importPage.file}>
               <input type="file" name="file" accept=".csv,text/csv" required />
@@ -57,7 +57,7 @@ export default async function ImportPage() {
       {recent.length > 0 && (
         <>
           <h2 className="mt-10 font-medium">{t.importPage.recent}</h2>
-          <table className="mt-2 w-full bg-white text-left text-sm shadow-sm">
+          <table className="mt-2 w-full overflow-hidden rounded-xl bg-white text-left text-sm shadow-[0_0_0_1px_rgba(228,228,231,1),0_1px_2px_rgba(16,24,40,0.04)]">
             <thead className="border-b border-zinc-200 text-zinc-500">
               <tr>
                 <th className="p-2 font-medium">File</th>

@@ -1,3 +1,4 @@
+import { classifyStage } from "@handoff/carriers";
 import type { ShipmentAggregateRow } from "@handoff/db";
 import { LastChecked } from "@/components/last-checked";
 import { StatusBadge } from "@/components/status-badge";
@@ -20,7 +21,7 @@ export async function Timeline({ shipment }: { shipment: ShipmentAggregateRow })
         return (
           <li key={leg.id}>
             <section
-              className="rounded border border-zinc-200 bg-white"
+              className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
               aria-label={`Leg ${leg.sequence}`}
             >
               <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-zinc-100 px-4 py-2">
@@ -55,13 +56,23 @@ export async function Timeline({ shipment }: { shipment: ShipmentAggregateRow })
                       </time>
                       <div>
                         <p>{event.rawMessage}</p>
-                        <p className="text-xs text-zinc-500">
-                          {[
-                            event.location,
-                            event.source === "MANUAL" ? t.detail.enteredManually : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
+                        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-zinc-500">
+                          {(() => {
+                            const stage = classifyStage(leg.carrierCode, event, leg.sequence);
+                            return stage ? (
+                              <span className="rounded-full bg-teal-50 px-2 py-0.5 font-medium text-teal-900">
+                                {t.stages[stage]}
+                              </span>
+                            ) : null;
+                          })()}
+                          <span>
+                            {[
+                              event.location,
+                              event.source === "MANUAL" ? t.detail.enteredManually : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
                         </p>
                       </div>
                       <div>

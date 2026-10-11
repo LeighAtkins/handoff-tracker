@@ -42,7 +42,7 @@ export default async function MetricsPage({
   return (
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Trial metrics</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Trial metrics</h1>
         <nav className="flex gap-3 text-sm">
           {PERIODS.map((p) => (
             <Link
@@ -94,7 +94,7 @@ export default async function MetricsPage({
         <Stat label="Active users" value={m.activeUsers} note={`${m.staffActions} actions taken`} />
       </section>
 
-      <section className="mt-8 max-w-2xl rounded border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
+      <section className="mt-8 max-w-2xl rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-4 text-sm text-zinc-700">
         <h2 className="font-medium text-zinc-900">How &ldquo;minutes saved&rdquo; is estimated</h2>
         <p className="mt-2">
           Each stuck shipment surfaced is one check a person would otherwise have made by hand: open
@@ -111,7 +111,7 @@ export default async function MetricsPage({
 
 function Stat({ label, value, note }: { label: string; value: number | string; note: string }) {
   return (
-    <div className="rounded border border-zinc-200 bg-white p-4">
+    <div className="rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-4">
       <p className="text-sm text-zinc-500">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
       <p className="mt-1 text-xs text-zinc-500">{note}</p>

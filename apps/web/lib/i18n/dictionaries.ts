@@ -1,8 +1,12 @@
 import type { Status } from "@handoff/domain";
+import { enJourney, jaJourney } from "./journey-strings";
 
 /** UI strings. English is the source; Japanese must provide every key (enforced by the type). */
 export const en = {
   nav: {
+    overview: "Overview",
+    track: "Track",
+    sources: "Data sources",
     stuck: "Stuck",
     shipments: "Shipments",
     import: "Import",
@@ -150,12 +154,16 @@ export const en = {
     noImports: "No imports yet. Upload a CSV to start tracking real orders.",
     manualCheck: "manual check",
   },
+  ...enJourney,
 };
 
 export type Dictionary = typeof en;
 
 export const ja: Dictionary = {
   nav: {
+    overview: "概要",
+    track: "追跡",
+    sources: "データ連携",
     stuck: "停滞",
     shipments: "出荷一覧",
     import: "インポート",
@@ -304,6 +312,7 @@ export const ja: Dictionary = {
     noImports: "まだインポートはありません。CSVをアップロードして実際の注文の追跡を始めましょう。",
     manualCheck: "手動確認",
   },
+  ...jaJourney,
 };
 
 export const LOCALES = { en, ja } as const;

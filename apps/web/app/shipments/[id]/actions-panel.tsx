@@ -14,7 +14,7 @@ import {
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded border border-zinc-200 bg-white p-4">
+    <section className="rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-4">
       <h2 className="mb-3 text-sm font-semibold">{title}</h2>
       {children}
     </section>

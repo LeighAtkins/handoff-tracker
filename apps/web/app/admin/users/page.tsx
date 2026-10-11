@@ -17,7 +17,7 @@ export default async function UsersPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Users</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
       <p className="mt-1 text-sm text-zinc-600">
         {domain
           ? `Anyone with a verified @${domain} Google account can sign in as a viewer. Add people here to give them more, or to let in other addresses.`
@@ -26,7 +26,7 @@ export default async function UsersPage() {
         this list.
       </p>
 
-      <table className="mt-6 w-full bg-white text-left text-sm shadow-sm">
+      <table className="mt-6 w-full overflow-hidden rounded-xl bg-white text-left text-sm shadow-[0_0_0_1px_rgba(228,228,231,1),0_1px_2px_rgba(16,24,40,0.04)]">
         <thead className="border-b border-zinc-200 text-zinc-500">
           <tr>
             <th className="p-2 font-medium">Email</th>
@@ -66,7 +66,7 @@ export default async function UsersPage() {
         </tbody>
       </table>
 
-      <section className="mt-8 max-w-md rounded border border-zinc-200 bg-white p-4">
+      <section className="mt-8 max-w-md rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-4">
         <h2 className="mb-3 text-sm font-semibold">Add someone</h2>
         <ActionForm action={addUserAction} submitLabel="Add">
           <Field label="Email">

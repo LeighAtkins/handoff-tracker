@@ -8,7 +8,9 @@ import { StatusBadge, StuckBadge } from "@/components/status-badge";
 import { Timeline } from "@/components/timeline";
 import { formatDateTime } from "@/lib/format";
 import { getT } from "@/lib/i18n";
-import { hasRole } from "@handoff/app";
+import { hasRole, loadBenchmarks, shipmentJourney } from "@handoff/app";
+import { InsightList, JourneyFacts, Milestones, StageTimes } from "@/components/journey";
+import { Card, CardHeader } from "@/components/ui";
 import { ActionsPanel } from "./actions-panel";
 import { Customer } from "./customer";
 
@@ -44,8 +46,12 @@ export default async function ShipmentPage({
   if (!shipment) notFound();
 
   const state = toShipmentState(shipment);
-  const quiet = daysQuiet(state, new Date());
+  const now = new Date();
+  const quiet = daysQuiet(state, now);
   const prisma = getPrisma();
+  const benchmarks = await loadBenchmarks(prisma, now);
+  const journey = shipmentJourney(shipment, { benchmarks, now });
+  const estimate = journey.insights.find((i) => i.code === "ESTIMATE");
   const [audit, carriers] = await Promise.all([
     prisma.auditEntry.findMany({
       where: {
@@ -113,6 +119,17 @@ export default async function ShipmentPage({
         </div>
       </dl>
 
+      <div className="mt-6 space-y-4">
+        <InsightList view={journey} limit={3} />
+        <Card className="p-5">
+          <Milestones
+            view={journey}
+            estimate={estimate?.code === "ESTIMATE" ? estimate.estimate.earliest : null}
+          />
+        </Card>
+        <JourneyFacts view={journey} />
+      </div>
+
       {shipment.overrideStatus && (
         <p className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
           {t.detail.overrideBanner(
@@ -144,13 +161,13 @@ export default async function ShipmentPage({
         })}
       </nav>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_24rem]">
         <div>
           {tab === "audit" ? (
             audit.length === 0 ? (
               <p className="text-sm text-zinc-600">{t.detail.noChanges}</p>
             ) : (
-              <table className="w-full bg-white text-left text-sm shadow-sm">
+              <table className="w-full overflow-hidden rounded-xl bg-white text-left text-sm shadow-[0_0_0_1px_rgba(228,228,231,1),0_1px_2px_rgba(16,24,40,0.04)]">
                 <thead className="border-b border-zinc-200 text-zinc-500">
                   <tr>
                     <th className="p-2 font-medium">{t.detail.when}</th>
@@ -190,7 +207,7 @@ export default async function ShipmentPage({
                     {notes.map((note) => (
                       <li
                         key={note.id}
-                        className="rounded border border-zinc-200 bg-white p-3 text-sm"
+                        className="rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-3 text-sm"
                       >
                         <p className="whitespace-pre-wrap">
                           {(note.after as { text?: string } | null)?.text}
@@ -207,11 +224,23 @@ export default async function ShipmentPage({
             </>
           )}
         </div>
-        {hasRole(user.role, "OPERATOR") ? (
-          <ActionsPanel shipment={shipment} carriers={carriers} t={t} />
-        ) : (
-          <p className="text-sm text-zinc-600">{t.detail.readOnly}</p>
-        )}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader title={t.journey.stagesTitle} />
+            <div className="px-5 py-4">
+              {Object.keys(benchmarks.segments).length ? (
+                <StageTimes view={journey} benchmarks={benchmarks} compact />
+              ) : (
+                <p className="text-sm text-zinc-500">{t.journey.notEnoughHistory}</p>
+              )}
+            </div>
+          </Card>
+          {hasRole(user.role, "OPERATOR") ? (
+            <ActionsPanel shipment={shipment} carriers={carriers} t={t} />
+          ) : (
+            <p className="text-sm text-zinc-600">{t.detail.readOnly}</p>
+          )}
+        </div>
       </div>
     </>
   );
