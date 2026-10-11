@@ -10,7 +10,7 @@ export const day = (n: number) => new Date(t0.getTime() + n * DAY);
 
 export async function resetDatabase() {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE "AuditEntry", "TrackingEvent", "Handoff", "Leg", "Shipment", "Order", "Carrier", "User", "ImportBatch" CASCADE',
+    'TRUNCATE "AuditEntry", "TrackingEvent", "Handoff", "Leg", "Shipment", "Order", "Carrier", "User", "ImportBatch", "TrackingLookup" CASCADE',
   );
   await prisma.carrier.createMany({
     data: [

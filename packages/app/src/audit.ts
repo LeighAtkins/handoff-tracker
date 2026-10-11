@@ -4,7 +4,7 @@ import type { Prisma } from "@handoff/db";
 export type Actor = string;
 
 export interface AuditInput {
-  entityType: "Shipment" | "Order" | "Import" | "User" | "System";
+  entityType: "Shipment" | "Order" | "Import" | "User" | "System" | "Lookup";
   entityId: string;
   action: string;
   actor: Actor;

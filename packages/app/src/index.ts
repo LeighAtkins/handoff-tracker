@@ -6,3 +6,6 @@ export * from "./users";
 export * from "./privacy";
 export * from "./metrics";
 export * from "./documents";
+export * from "./journey";
+export * from "./lookup";
+export * from "./overview";
