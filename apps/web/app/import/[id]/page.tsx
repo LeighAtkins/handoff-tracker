@@ -98,7 +98,7 @@ function Preview({
   return (
     <>
       <section
-        className="mt-6 flex flex-wrap items-center gap-6 rounded border border-zinc-200 bg-white p-4"
+        className="mt-6 flex flex-wrap items-center gap-6 rounded-xl border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] p-4"
         data-testid="import-preview"
       >
         <p className="text-sm">
@@ -139,7 +139,7 @@ function Preview({
           <h2 className="mt-8 font-medium">
             Valid rows{rows.length > PREVIEW_ROWS && ` (first ${PREVIEW_ROWS} of ${rows.length})`}
           </h2>
-          <table className="mt-2 w-full bg-white text-left text-sm shadow-sm">
+          <table className="mt-2 w-full overflow-hidden rounded-xl bg-white text-left text-sm shadow-[0_0_0_1px_rgba(228,228,231,1),0_1px_2px_rgba(16,24,40,0.04)]">
             <thead className="border-b border-zinc-200 text-zinc-500">
               <tr>
                 <th className="p-2 font-medium">Row</th>

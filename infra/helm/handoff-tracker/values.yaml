@@ -20,6 +20,10 @@ config:
   authDevLogin: false
   metricsManualCheckMinutes: "4"
   metricsAppCheckMinutes: "0.5"
+  # Overview: door-to-door target in days.
+  deliveryTargetDays: "7"
+  # Empty means 4PX production; the test platform is https://open-test.4px.com/router/api/service
+  fourPxApiUrl: ""
 
 # Secrets. In production create the Secret yourself (or with External Secrets / Sealed Secrets)
 # and set existingSecret; the chart then never sees the values.
@@ -30,6 +34,9 @@ secrets:
   authSecret: ""
   googleClientId: ""
   googleClientSecret: ""
+  # 4PX Open Platform (ADR-0004); used for live lookups (web) and polling (worker).
+  fourPxAppKey: ""
+  fourPxAppSecret: ""
   ship24ApiKey: ""
   seventeenTrackApiKey: ""
   aftershipApiKey: ""

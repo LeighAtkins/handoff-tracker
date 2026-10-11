@@ -19,15 +19,25 @@ What NOMS shows about real shipments (read-only check of orders shipped to Japan
 
 ## Options
 
-|                           | Ship24                                                                                             | 17TRACK                                                                                  | AfterShip                                              |
-| ------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Model                     | One call creates the tracker and returns results (`POST /public/v1/trackers/track`)                | Register once, then poll `gettrackinfo`; results arrive asynchronously                   | Create a tracking once, then read it back              |
-| Multi-carrier journeys    | Events carry `courierCode` and `eventTrackingNumber`, so the last-mile number can appear per event | Origin and destination carriers appear as separate `providers` under the original number | `next_couriers` names the last-mile carrier and number |
-| Free tier (as documented) | Small monthly allowance                                                                            | One-time 200 numbers for new accounts; 3 req/s                                           | Limited monthly allowance                              |
+|                           | Ship24                                                                                             | 17TRACK                                                                                                             | AfterShip                                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Model                     | One call creates the tracker and returns results (`POST /public/v1/trackers/track`)                | Register once, then poll `gettrackinfo`; results arrive asynchronously                                              | Create a tracking once, then read it back                                           |
+| Multi-carrier journeys    | Events carry `courierCode` and `eventTrackingNumber`, so the last-mile number can appear per event | Origin and destination carriers appear as separate `providers`; `misc_info.local_number` names the last-mile number | `last_mile` names the last-mile carrier and number (`next_couriers` before 2025-01) |
+| Free tier (as documented) | 10 shipments a month; last-mile number detection on paid plans (from $39/month per 1,000)          | One-time 200 numbers for new accounts, then paid; 3 req/s                                                           | No free API tier (from about $59/month)                                             |
 
 All three are implemented behind `CarrierAdapter` (`packages/carriers/src/aggregators`), with
 responses validated by Zod. Each adapter keeps only the events belonging to the Leg's carrier
 and reports a handoff when a later carrier appears.
+
+### Update, 2026-10-11
+
+A check of each provider's current documentation found three adapter bugs, now fixed: AfterShip's
+handoff field is `last_mile` since API version 2025-01 (we read the removed `next_couriers`), 17TRACK
+names the last-mile number in `misc_info.local_number` (we reported the original number), and
+Ship24's event times without an offset are the carrier's local time (we read them as UTC). The
+free-tier row above is corrected. 4PX's own API turned out to document the last-mile number
+directly; [ADR-0004](0004-direct-4px-integration.md) proposes using it first, with the aggregators
+as fallbacks. The trial below now includes 4PX when its keys are set (`pnpm trial:4px`).
 
 ## Trial
 

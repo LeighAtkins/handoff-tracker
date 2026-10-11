@@ -1,0 +1,366 @@
+{
+  "samples": [
+    {
+      "trackingNumber": "4PXDEMO1001CN",
+      "scenario": "delivered",
+      "lastMile": { "carrierCode": "SAGAWA", "trackingNumber": "900000101001" },
+      "facts": { "originCountry": "CN", "destinationCountry": "JP", "weightKg": 2.4 },
+      "events": [
+        {
+          "offsetHours": -170,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_L_RPIF",
+          "rawMessage": "Shipment information received",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -158,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_SPLS",
+          "rawMessage": "Shipment picked up.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -155,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_AAF",
+          "rawMessage": "Shipment arrived at facility and measured.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -140,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_ADFF",
+          "rawMessage": "Depart from facility to service provider.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -126,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_HA",
+          "rawMessage": "Hand over to airline.",
+          "location": "Shenzhen Bao'an Airport, CN"
+        },
+        {
+          "offsetHours": -118,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_DFOA",
+          "rawMessage": "Departure from the original airport",
+          "location": "Shenzhen Bao'an Airport, CN"
+        },
+        {
+          "offsetHours": -113,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_ATA",
+          "rawMessage": "Arrival to the destination airport",
+          "location": "Kansai Airport, JP"
+        },
+        {
+          "offsetHours": -104,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_I_PTCO",
+          "rawMessage": "Arrival of package at customs bonded warehouse.",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": -96,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_I_RCUK",
+          "rawMessage": "Released from customs: customs cleared.",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": -90,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_D_STPP",
+          "rawMessage": "In transit,it'sprogressing through delivery network",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": -84,
+          "carrierCode": "SAGAWA",
+          "rawStatus": "",
+          "rawMessage": "荷物を受け付けました",
+          "location": "大阪営業所"
+        },
+        {
+          "offsetHours": -70,
+          "carrierCode": "SAGAWA",
+          "rawStatus": "",
+          "rawMessage": "輸送中です",
+          "location": "東京中継センター"
+        },
+        {
+          "offsetHours": -52,
+          "carrierCode": "SAGAWA",
+          "rawStatus": "",
+          "rawMessage": "配達中です",
+          "location": "世田谷営業所"
+        },
+        {
+          "offsetHours": -47,
+          "carrierCode": "SAGAWA",
+          "rawStatus": "",
+          "rawMessage": "配達が完了しました",
+          "location": "世田谷営業所"
+        }
+      ]
+    },
+    {
+      "trackingNumber": "4PXDEMO1002CN",
+      "scenario": "stalled-after-handoff",
+      "lastMile": { "carrierCode": "SAGAWA", "trackingNumber": "900000101002" },
+      "facts": { "originCountry": "CN", "destinationCountry": "JP", "weightKg": 3.1 },
+      "events": [
+        {
+          "offsetHours": -260,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_L_RPIF",
+          "rawMessage": "Shipment information received",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -246,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_SPLS",
+          "rawMessage": "Shipment picked up.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -230,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_ADFF",
+          "rawMessage": "Depart from facility to service provider.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -214,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_DFOA",
+          "rawMessage": "Departure from the original airport",
+          "location": "Shenzhen Bao'an Airport, CN"
+        },
+        {
+          "offsetHours": -209,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_ATA",
+          "rawMessage": "Arrival to the destination airport",
+          "location": "Kansai Airport, JP"
+        },
+        {
+          "offsetHours": -190,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_I_RCUK",
+          "rawMessage": "Released from customs: customs cleared.",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": -152,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_D_STPP",
+          "rawMessage": "In transit,it'sprogressing through delivery network",
+          "location": "Osaka, JP"
+        }
+      ]
+    },
+    {
+      "trackingNumber": "4PXDEMO1003CN",
+      "scenario": "customs-hold",
+      "lastMile": null,
+      "facts": { "originCountry": "CN", "destinationCountry": "JP", "weightKg": 1.8 },
+      "events": [
+        {
+          "offsetHours": -150,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_L_RPIF",
+          "rawMessage": "Shipment information received",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -138,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_SPLS",
+          "rawMessage": "Shipment picked up.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -120,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_ADFF",
+          "rawMessage": "Depart from facility to service provider.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -99,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_DFOA",
+          "rawMessage": "Departure from the original airport",
+          "location": "Shenzhen Bao'an Airport, CN"
+        },
+        {
+          "offsetHours": -94,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_ATA",
+          "rawMessage": "Arrival to the destination airport",
+          "location": "Narita Airport, JP"
+        },
+        {
+          "offsetHours": -80,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_I_PTCO",
+          "rawMessage": "Arrival of package at customs bonded warehouse.",
+          "location": "Chiba, JP"
+        },
+        {
+          "offsetHours": -61,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_I_HCCI",
+          "rawMessage": "Held in customs, Need consignee's information.",
+          "location": "Chiba, JP"
+        }
+      ]
+    },
+    {
+      "trackingNumber": "4PXDEMO1004CN",
+      "scenario": "delivery-failed",
+      "lastMile": { "carrierCode": "SAGAWA", "trackingNumber": "900000101004" },
+      "facts": { "originCountry": "CN", "destinationCountry": "JP", "weightKg": 4.6 },
+      "events": [
+        {
+          "offsetHours": -190,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_L_RPIF",
+          "rawMessage": "Shipment information received",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -176,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_SPLS",
+          "rawMessage": "Shipment picked up.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -160,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_ADFF",
+          "rawMessage": "Depart from facility to service provider.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -141,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_DFOA",
+          "rawMessage": "Departure from the original airport",
+          "location": "Shenzhen Bao'an Airport, CN"
+        },
+        {
+          "offsetHours": -122,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_TDFD",
+          "rawMessage": "Transport delay, due the flight delay.",
+          "location": "Shenzhen Bao'an Airport, CN"
+        },
+        {
+          "offsetHours": -110,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_ATA",
+          "rawMessage": "Arrival to the destination airport",
+          "location": "Kansai Airport, JP"
+        },
+        {
+          "offsetHours": -96,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_I_RCUK",
+          "rawMessage": "Released from customs: customs cleared.",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": -88,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_D_STPP",
+          "rawMessage": "In transit,it'sprogressing through delivery network",
+          "location": "Osaka, JP"
+        },
+        {
+          "offsetHours": -80,
+          "carrierCode": "SAGAWA",
+          "rawStatus": "",
+          "rawMessage": "荷物を受け付けました",
+          "location": "大阪営業所"
+        },
+        {
+          "offsetHours": -60,
+          "carrierCode": "SAGAWA",
+          "rawStatus": "",
+          "rawMessage": "輸送中です",
+          "location": "名古屋中継センター"
+        },
+        {
+          "offsetHours": -30,
+          "carrierCode": "SAGAWA",
+          "rawStatus": "",
+          "rawMessage": "配達中です",
+          "location": "横浜営業所"
+        },
+        {
+          "offsetHours": -26,
+          "carrierCode": "SAGAWA",
+          "rawStatus": "",
+          "rawMessage": "ご不在のため持ち戻りました",
+          "location": "横浜営業所"
+        }
+      ]
+    },
+    {
+      "trackingNumber": "4PXDEMO1005CN",
+      "scenario": "in-flight",
+      "lastMile": { "carrierCode": "SAGAWA", "trackingNumber": "900000101005" },
+      "facts": { "originCountry": "CN", "destinationCountry": "JP", "weightKg": 2.0 },
+      "events": [
+        {
+          "offsetHours": -50,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_L_RPIF",
+          "rawMessage": "Shipment information received",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -38,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_SPLS",
+          "rawMessage": "Shipment picked up.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -35,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_AAF",
+          "rawMessage": "Shipment arrived at facility and measured.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -20,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_C_ADFF",
+          "rawMessage": "Depart from facility to service provider.",
+          "location": "Shenzhen, CN"
+        },
+        {
+          "offsetHours": -9,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_HA",
+          "rawMessage": "Hand over to airline.",
+          "location": "Shenzhen Bao'an Airport, CN"
+        },
+        {
+          "offsetHours": -4,
+          "carrierCode": "4PX",
+          "rawStatus": "FPX_M_DFOA",
+          "rawMessage": "Departure from the original airport",
+          "location": "Shenzhen Bao'an Airport, CN"
+        }
+      ]
+    }
+  ]
+}

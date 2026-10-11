@@ -8,10 +8,28 @@ export interface AttributedEvent extends RawTrackingEvent {
   trackingNumber: string | null;
 }
 
+/** What a provider says about the parcel beyond its events. Shown on the lookup page. */
+export interface ShipmentFacts {
+  originCountry?: string | null;
+  destinationCountry?: string | null;
+  /** The last-mile carrier and its number, which some providers know before the handover. */
+  lastMile?: { carrierCode: string; trackingNumber: string } | null;
+  /** The provider's own delivery estimate, if it gives one. */
+  estimatedDelivery?: { from: Date | null; to: Date | null; source: string } | null;
+  weightKg?: number | null;
+  service?: string | null;
+}
+
 export interface AggregatorResult {
   events: AttributedEvent[];
   /** The next carrier and its tracking number, if the aggregator knows about a handoff. */
   handoff: DetectedHandoff | null;
+  /**
+   * PENDING: the provider accepted the number but has no results yet (register-then-poll).
+   * NOT_FOUND: the provider does not know the number. Absent means READY.
+   */
+  state?: "READY" | "PENDING" | "NOT_FOUND";
+  facts?: ShipmentFacts;
 }
 
 export interface AggregatorClient {
@@ -22,11 +40,22 @@ export interface AggregatorClient {
 /** Aggregators name carriers their own way; this maps their codes and names to ours. */
 export function carrierCodeFromAggregator(value: string | null | undefined): string | null {
   if (!value) return null;
-  if (/4px/i.test(value)) return "4PX";
+  if (/4px|递四方/i.test(value)) return "4PX";
   if (/sagawa|佐川/i.test(value)) return "SAGAWA";
-  if (/yamato|ヤマト/i.test(value)) return "YAMATO";
+  if (/yamato|taqbin|ヤマト/i.test(value)) return "YAMATO";
   if (/japan.?post|jp.?post|日本郵便/i.test(value)) return "JAPANPOST";
   return value.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+}
+
+/**
+ * Carriers in Japan report Japan time; 4PX and other Chinese carriers report China time. Used when
+ * an aggregator gives a local time with no offset, so the handoff gap is not off by 8-9 hours.
+ */
+export function localOffsetFor(carrierCode: string | null, location?: string | null): string {
+  if (carrierCode && ["SAGAWA", "YAMATO", "JAPANPOST"].includes(carrierCode)) return "+09:00";
+  if (location && /japan|\bjp\b|osaka|tokyo|narita|kansai|haneda|nagoya|fukuoka/i.test(location))
+    return "+09:00";
+  return carrierCode === "4PX" ? "+08:00" : "Z";
 }
 
 /**

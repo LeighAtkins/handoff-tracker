@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// Stuck shipments are what staff come here for.
+// The overview leads with what needs someone today, and links on to the stuck list.
 export default function Home() {
-  redirect("/stuck");
+  redirect("/overview");
 }

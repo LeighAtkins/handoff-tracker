@@ -9,6 +9,12 @@ that go quiet, and gives staff one place to look instead of two carrier websites
 
 _All data in this repo and in the demo is fake. Order numbers start with `DEMO-`._
 
+| Overview for managers                              | Any 4PX number, explained                                                     |
+| -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| ![Overview](docs/assets/screens/overview.png)      | ![Lookup of a parcel stuck after the handoff](docs/assets/screens/lookup.png) |
+| **A stuck shipment and the next step**             | **Data sources and the 4PX case**                                             |
+| ![Shipment page](docs/assets/screens/shipment.png) | ![Data sources](docs/assets/screens/sources.png)                              |
+
 ## The problem
 
 When 4PX hands a parcel to Sagawa for the last mile, the 4PX page goes quiet and Sagawa uses a new
@@ -18,6 +24,15 @@ Handoff Tracker models each **Leg** and the **Handoff** between them explicitly,
 
 ## What it does
 
+- **Overview** for managers: where open parcels are, where the time goes from China to the door,
+  how long Sagawa takes to scan after 4PX hands over, deliveries per week against a target, and
+  the parcels that need someone today.
+- **Live lookup of any 4PX or Sagawa number**, without importing it: the whole journey across both
+  carriers, 4PX's official status codes, each stage against the usual, the handoff gap, an expected
+  delivery date from our own history, and the next step. Uses **4PX's own API** when keys are set
+  ([ADR-0004](docs/adr/0004-direct-4px-integration.md)), then Ship24, 17TRACK or AfterShip.
+- **Journey insights** on every shipment: milestones, what is unusual, and what to do
+  ("Ask Sagawa where it is, tracking number …").
 - **Stuck dashboard**: no event for 3 days (5 straight after a handoff), by carrier and days quiet.
 - **Timeline per shipment**, grouped by Leg, with handoff markers and a "last checked" time so
   "no news" can be trusted.
@@ -53,6 +68,7 @@ flowchart LR
   db --> domain
   carriers --> domain
   db --- pg[(PostgreSQL)]
+  carriers -. HTTPS .-> fpx["4PX Open API"]
   carriers -. HTTPS .-> agg["Ship24 / 17TRACK / AfterShip"]
 ```
 
@@ -70,10 +86,15 @@ Requires Node 24, Docker and pnpm (`corepack enable`).
 ```sh
 pnpm install
 cp .env.example .env
-pnpm db:setup   # Postgres on :5433, migrations, 54 fake orders
+pnpm db:setup   # Postgres on :5433, migrations, 54 open fake orders + 8 weeks of delivered history
 pnpm dev        # http://localhost:3100 (developer login: pick a seeded user)
 pnpm worker     # one polling run against the fake carriers; DEMO-LIVE-* shipments fill in
 ```
+
+For a demo, `pnpm demo` reseeds, builds for production, runs the worker loop and serves the app on
+:3100 ([docs/demo-script.md](docs/demo-script.md)). The `/track` page works without any keys for
+the sample numbers; set `FOURPX_APP_KEY`/`FOURPX_APP_SECRET` (or an aggregator key) in `.env` to
+look up real parcels, and run `pnpm trial:4px` to compare sources on real numbers.
 
 Other ways to run it:
 
@@ -87,14 +108,14 @@ Other ways to run it:
 
 ## Quality
 
-|               |                                                                                                     |
-| ------------- | --------------------------------------------------------------------------------------------------- |
-| `pnpm verify` | Prettier, ESLint, TypeScript (strict), unit and use-case tests, the same as CI                      |
-| Domain        | Vitest with coverage thresholds (100% lines/functions, 95% branches)                                |
-| Use cases     | Vitest against a real Postgres test database                                                        |
-| End to end    | Playwright: import, timeline, resolve a stuck shipment, auth, privacy, documents, Japanese          |
-| Security      | Trivy on dependencies, secrets, Dockerfiles and both images; Dependabot; [SECURITY.md](SECURITY.md) |
-| Delivery      | GitHub Actions → GHCR images → tag committed to Helm values → Argo CD                               |
+|               |                                                                                                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `pnpm verify` | Prettier, ESLint, TypeScript (strict), unit and use-case tests, the same as CI                                    |
+| Domain        | Vitest with coverage thresholds (100% lines/functions, 95% branches)                                              |
+| Use cases     | Vitest against a real Postgres test database                                                                      |
+| End to end    | Playwright: overview, live lookup, import, timeline, resolve a stuck shipment, auth, privacy, documents, Japanese |
+| Security      | Trivy on dependencies, secrets, Dockerfiles and both images; Dependabot; [SECURITY.md](SECURITY.md)               |
+| Delivery      | GitHub Actions → GHCR images → tag committed to Helm values → Argo CD                                             |
 
 Work is tracked as one issue per feature and one PR per issue, with CI green before merge.
 
@@ -103,6 +124,8 @@ Work is tracked as one issue per feature and one PR per issue, with CI green bef
 - [ADR-0001: Project scope and stack](docs/adr/0001-project-scope-and-stack.md)
 - [ADR-0002: Status model and explicit handoffs](docs/adr/0002-status-model-and-explicit-handoffs.md)
 - [ADR-0003: Tracking aggregator](docs/adr/0003-tracking-aggregator.md) (proposed, pending the trial)
+- [ADR-0004: Track 4PX parcels through 4PX's own API](docs/adr/0004-direct-4px-integration.md)
+  (proposed, pending keys); the case for a manager: [docs/4px-api-request.md](docs/4px-api-request.md)
 
 ## Layout
 
@@ -112,7 +135,7 @@ Work is tracked as one issue per feature and one PR per issue, with CI green bef
 | `apps/worker`       | Polling worker                                                                    |
 | `packages/domain`   | Pure TypeScript domain model and rules                                            |
 | `packages/app`      | Use cases shared by web and worker; the audit helper                              |
-| `packages/carriers` | Carrier and aggregator adapters, normaliser                                       |
+| `packages/carriers` | 4PX Open API client, aggregator adapters, normaliser, journey stage classifier    |
 | `packages/db`       | Prisma schema, migrations, repository, fake-data seed                             |
 | `e2e`               | Playwright tests                                                                  |
 | `infra`             | Dockerfiles, Compose for production, Helm chart, kind config, Argo CD Application |
@@ -120,8 +143,9 @@ Work is tracked as one issue per feature and one PR per issue, with CI green bef
 
 ## What I would do next
 
-1. **Run the aggregator trial** with real numbers and settle ADR-0003. Then fix whatever the real
-   responses teach the adapters, and grow the Sagawa message mapping from the "unrecognised" events.
+1. **Get 4PX API keys** ([the request](docs/4px-api-request.md)), run `pnpm trial:4px` on real
+   numbers, and settle ADR-0003/0004. Then fix whatever the real responses teach the clients, and
+   grow the Sagawa message mapping from the "unrecognised" events.
 2. **Two-week internal trial** at Comfort Works, measuring check times so the metrics page reports
    measured numbers instead of assumptions.
 3. **A NOMS export shape** for the importer, so staff can import without reformatting.

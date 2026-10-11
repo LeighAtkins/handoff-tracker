@@ -13,6 +13,7 @@ import {
   lastEventAt,
   markResolved,
   recordHandoff,
+  stuckDeadline,
   stuckSince,
   type EventState,
   type ShipmentState,
@@ -293,6 +294,13 @@ describe("stuck detection", () => {
       at: day(1),
     });
     expect(isStuck(s, day(30))).toBe(false);
+  });
+
+  it("says when a quiet Shipment will be flagged, before it happens", () => {
+    // Sagawa has 5 days from the day-3 handoff, then 3 days from its own first scan.
+    expect(stuckDeadline(handedOff())).toEqual(day(8));
+    expect(stuckDeadline(applyEvent(handedOff(), event(2, day(4), "IN_TRANSIT")))).toEqual(day(7));
+    expect(stuckDeadline(applyEvent(fourPx(), event(1, day(0), "DELIVERED")))).toBeNull();
   });
 
   it("counts whole days quiet", () => {

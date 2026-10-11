@@ -29,8 +29,8 @@ export function ActionForm({
           disabled={pending}
           className={
             variant === "primary"
-              ? "rounded bg-zinc-900 px-3 py-1.5 text-sm text-white disabled:opacity-50"
-              : "rounded border border-zinc-300 bg-white px-3 py-1.5 text-sm disabled:opacity-50"
+              ? "rounded-lg bg-teal-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-teal-800 disabled:opacity-50"
+              : "rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-zinc-50 disabled:opacity-50"
           }
         >
           {pending ? pendingLabel : submitLabel}

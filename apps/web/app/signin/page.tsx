@@ -21,8 +21,23 @@ export default async function SignInPage({
   const google = googleConfig();
 
   return (
-    <div className="mx-auto mt-16 max-w-sm rounded border border-zinc-200 bg-white p-6">
-      <h1 className="text-xl font-semibold">{t.signIn.title}</h1>
+    <div className="mx-auto mt-16 max-w-sm rounded-2xl border border-zinc-200 bg-white p-7 shadow-sm">
+      <svg viewBox="0 0 64 64" className="mb-4 size-10" aria-hidden>
+        <rect width="64" height="64" rx="14" fill="#0d9488" />
+        <text
+          x="32"
+          y="32"
+          dy="0.35em"
+          textAnchor="middle"
+          fontSize="26"
+          fontWeight="600"
+          fill="#fff"
+          fontFamily="ui-sans-serif, system-ui, -apple-system, sans-serif"
+        >
+          HT
+        </text>
+      </svg>
+      <h1 className="text-xl font-semibold tracking-tight">{t.signIn.title}</h1>
       <p className="mt-1 text-sm text-zinc-600">{t.signIn.intro}</p>
       {error && (
         <p role="alert" className="mt-4 rounded bg-red-50 p-2 text-sm text-red-800">
@@ -33,7 +48,7 @@ export default async function SignInPage({
       {google ? (
         <a
           href="/auth/google"
-          className="mt-6 block rounded bg-zinc-900 px-3 py-2 text-center text-sm text-white"
+          className="mt-6 block rounded-lg bg-teal-700 px-3 py-2 text-center text-sm font-medium text-white hover:bg-teal-800"
         >
           {t.signIn.google}
         </a>

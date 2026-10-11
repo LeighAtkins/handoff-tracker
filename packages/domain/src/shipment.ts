@@ -220,12 +220,23 @@ export function stuckSince(
   now: Date,
   rules: StuckRules = DEFAULT_STUCK_RULES,
 ): Date | null {
-  if (isTerminal(currentStatus(state))) return null;
-  const quiet = quietPeriod(state, rules);
-  const since = new Date(quiet.since.getTime() + quiet.days * DAY_MS);
-  if (now < since) return null;
+  const since = stuckDeadline(state, rules);
+  if (!since || now < since) return null;
   if (state.stuckResolvedAt && state.stuckResolvedAt >= since) return null;
   return since;
+}
+
+/**
+ * When the current quiet period runs past its threshold, i.e. when the Shipment will count as
+ * stuck if nothing new arrives. Null for delivered and returned Shipments.
+ */
+export function stuckDeadline(
+  state: ShipmentState,
+  rules: StuckRules = DEFAULT_STUCK_RULES,
+): Date | null {
+  if (isTerminal(currentStatus(state))) return null;
+  const quiet = quietPeriod(state, rules);
+  return new Date(quiet.since.getTime() + quiet.days * DAY_MS);
 }
 
 export function isStuck(

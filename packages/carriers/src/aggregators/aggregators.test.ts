@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import { RateLimitedError } from "../adapter";
 import { normalise } from "../normaliser";
 import { adapterFor } from "../registry";
-import { carrierCodeFromAggregator } from "./aggregator";
+import { createAfterShipClient } from "./aftership";
+import { carrierCodeFromAggregator, localOffsetFor } from "./aggregator";
 import { AggregatorHttpError, type FetchLike } from "./http";
-import { ship24Time } from "./ship24";
+import { createSeventeenTrackClient } from "./seventeen-track";
+import { createShip24Client, ship24Time } from "./ship24";
 
 /** Response bodies follow each aggregator's documented shape. The trial (ADR-0003) checks them against reality. */
 function mockFetch(
@@ -108,6 +110,86 @@ describe("Ship24", () => {
     expect(ship24Time({ occurrenceDatetime: "2026-10-01T10:00:00Z" })).toEqual(
       new Date("2026-10-01T10:00:00Z"),
     );
+  });
+
+  it("reads offset-less local times in each carrier's own zone, and reports the estimate", async () => {
+    const local = {
+      data: {
+        trackings: [
+          {
+            shipment: {
+              originCountryCode: "CN",
+              destinationCountryCode: "JP",
+              delivery: {
+                courierEstimatedDeliveryDate: { from: "2026-10-05", to: "2026-10-06" },
+                service: "Standard",
+              },
+            },
+            events: [
+              {
+                status: "Departure from the original airport",
+                occurrenceDatetime: "2026-10-01T10:00:00",
+                courierCode: "4px",
+                location: "Shenzhen",
+              },
+              {
+                status: "Arrival to the destination airport",
+                occurrenceDatetime: "2026-10-02T10:00:00",
+                courierCode: "4px",
+                location: "Kansai Airport, Japan",
+              },
+              {
+                status: "荷物を受け付けました",
+                occurrenceDatetime: "2026-10-03T10:00:00",
+                courierCode: "sagawa",
+                eventTrackingNumber: "900011112222",
+              },
+              { status: "Note", occurrenceDatetime: "2026-10-04", courierCode: null },
+            ],
+          },
+        ],
+      },
+    };
+    const client = createShip24Client({
+      apiKey: "k",
+      fetch: mockFetch({ "POST https://api.ship24.com": local }),
+    });
+    const result = await client.track("4PX1CN", "4PX");
+    expect(result.events.map((e) => e.occurredAt.toISOString())).toEqual([
+      "2026-10-01T02:00:00.000Z", // China time
+      "2026-10-02T01:00:00.000Z", // 4PX in Japan: Japan time
+      "2026-10-03T01:00:00.000Z", // Sagawa: Japan time
+      "2026-10-04T04:00:00.000Z", // a date only, read as midday in the polled carrier's zone
+    ]);
+    expect(result.facts).toEqual({
+      originCountry: "CN",
+      destinationCountry: "JP",
+      lastMile: { carrierCode: "SAGAWA", trackingNumber: "900011112222" },
+      estimatedDelivery: {
+        from: new Date("2026-10-05"),
+        to: new Date("2026-10-06"),
+        source: "Ship24",
+      },
+      service: "Standard",
+    });
+  });
+
+  it("falls back to Ship24's single estimated date", async () => {
+    const client = createShip24Client({
+      apiKey: "k",
+      fetch: mockFetch({
+        "POST https://api.ship24.com": {
+          data: {
+            trackings: [{ shipment: { delivery: { estimatedDeliveryDate: "2026-10-06" } } }],
+          },
+        },
+      }),
+    });
+    expect((await client.track("4PX1CN", "4PX")).facts?.estimatedDelivery).toEqual({
+      from: new Date("2026-10-06"),
+      to: null,
+      source: "Ship24",
+    });
   });
 
   it("copes with a tracker that has no events yet", async () => {
@@ -235,8 +317,88 @@ describe("17TRACK", () => {
     const sagawa = adapterFor({ code: "SAGAWA", adapter: "17track" }, { env, fetch });
     const sagawaEvents = await sagawa.fetchEvents("4PX1CN");
     expect(normalise("SAGAWA", sagawaEvents[0]!)).toBe("OUT_FOR_DELIVERY");
-    expect(sagawaEvents[1]?.rawStatus).toBe("DeliveryFailure");
+    expect(sagawaEvents[1]?.rawStatus).toBe("DeliveryFailure_Other");
     expect(normalise("SAGAWA", sagawaEvents[1]!)).toBe("EXCEPTION");
+  });
+
+  it("names Sagawa's own number and the parcel's facts when 17TRACK knows them", async () => {
+    const accepted = tracked.data.accepted[0]!;
+    const withInfo = {
+      ...tracked,
+      data: {
+        accepted: [
+          {
+            ...accepted,
+            track_info: {
+              ...accepted.track_info,
+              shipping_info: {
+                shipper_address: { country: "CN" },
+                recipient_address: { country: "JP" },
+              },
+              time_metrics: {
+                estimated_delivery_date: {
+                  source: "Official",
+                  from: "2026-10-06T00:00:00+09:00",
+                  to: null,
+                },
+              },
+              misc_info: {
+                service_type: "Express",
+                weight_kg: "2.40",
+                local_number: "900011112222",
+                local_provider: "Sagawa (佐川急便)",
+                local_key: 100040,
+              },
+            },
+          },
+        ],
+      },
+    };
+    const client = createSeventeenTrackClient({
+      apiKey: "k",
+      fetch: mockFetch({ "POST https://api.17track.net": withInfo }),
+    });
+    const result = await client.track("4PX1CN", "4PX");
+    expect(result.handoff).toEqual({
+      nextCarrierCode: "SAGAWA",
+      nextTrackingNumber: "900011112222",
+    });
+    expect(result.facts).toEqual({
+      originCountry: "CN",
+      destinationCountry: "JP",
+      lastMile: { carrierCode: "SAGAWA", trackingNumber: "900011112222" },
+      estimatedDelivery: {
+        from: new Date("2026-10-05T15:00:00Z"),
+        to: null,
+        source: "Official",
+      },
+      weightKg: 2.4,
+      service: "Express",
+    });
+  });
+
+  it("attributes events by carrier key, whatever the provider is called", async () => {
+    const renamed = structuredClone(tracked);
+    renamed.data.accepted[0]!.track_info.tracking.providers[1]!.provider.name = "佐川急便 SGH";
+    renamed.data.accepted[0]!.track_info.tracking.providers[1]!.provider.key = 100041;
+    const client = createSeventeenTrackClient({
+      apiKey: "k",
+      fetch: mockFetch({ "POST https://api.17track.net": renamed }),
+    });
+    const result = await client.track("4PX1CN", "4PX");
+    expect(new Set(result.events.map((e) => e.carrierCode))).toEqual(new Set(["4PX", "SAGAWA"]));
+    expect(result.facts).toMatchObject({ lastMile: null, estimatedDelivery: null, weightKg: null });
+  });
+
+  it("marks a newly registered number as pending", async () => {
+    const client = createSeventeenTrackClient({
+      apiKey: "k",
+      fetch: mockFetch({
+        "POST https://api.17track.net/track/v2.4/gettrackinfo": { code: 0, data: { accepted: [] } },
+        "POST https://api.17track.net/track/v2.4/register": { code: 0, data: { accepted: [] } },
+      }),
+    });
+    expect((await client.track("4PX1CN", "4PX")).state).toBe("PENDING");
   });
 });
 
@@ -253,7 +415,7 @@ describe("AfterShip", () => {
         slug: "4px",
       },
     ],
-    next_couriers: [{ slug: "sagawa", tracking_number: "900011112222" }],
+    last_mile: { slug: "sagawa", tracking_number: "900011112222" },
   };
 
   it("reads an existing tracking and its next courier", async () => {
@@ -281,6 +443,80 @@ describe("AfterShip", () => {
       nextTrackingNumber: "900011112222",
     });
     expect(calls).toHaveLength(1);
+  });
+
+  it("reports the handover scan, the estimate and the weight", async () => {
+    const detailed = {
+      ...tracking,
+      origin_country_region: "CHN",
+      destination_country_region: "JPN",
+      shipment_weight: { value: 2.4, unit: "kg" },
+      courier_estimated_delivery_date: {
+        estimated_delivery_date: "2026-10-06T00:00:00+09:00",
+        estimated_delivery_date_min: null,
+        estimated_delivery_date_max: "2026-10-07T00:00:00+09:00",
+      },
+      checkpoints: [
+        ...tracking.checkpoints,
+        {
+          checkpoint_time: "2026-10-03T09:00:00+09:00",
+          message: "Handed over to the local carrier",
+          tag: "InTransit",
+          subtag: "InTransit_001",
+          slug: "4px",
+          events: [{ code: "handed_over_to_last_mile_carrier" }],
+        },
+      ],
+    };
+    const client = createAfterShipClient({
+      apiKey: "k",
+      fetch: mockFetch({ "GET https://api.aftership.com": { data: { trackings: [detailed] } } }),
+    });
+    const result = await client.track("4PX1CN", "4PX");
+    expect(result.events.map((e) => e.rawStatus)).toEqual([
+      "InTransit",
+      "handed_over_to_last_mile_carrier",
+    ]);
+    expect(normalise("4PX", result.events[1]!)).toBe("HANDED_OFF");
+    expect(result.state).toBe("READY");
+    expect(result.facts).toEqual({
+      originCountry: "CHN",
+      destinationCountry: "JPN",
+      lastMile: { carrierCode: "SAGAWA", trackingNumber: "900011112222" },
+      estimatedDelivery: {
+        from: new Date("2026-10-05T15:00:00Z"),
+        to: new Date("2026-10-06T15:00:00Z"),
+        source: "Carrier",
+      },
+      weightKg: 2.4,
+    });
+  });
+
+  it("falls back to AfterShip's own estimate, and ignores weights in other units", async () => {
+    const client = createAfterShipClient({
+      apiKey: "k",
+      fetch: mockFetch({
+        "GET https://api.aftership.com": {
+          data: {
+            trackings: [
+              {
+                ...tracking,
+                last_mile: { slug: "4px", tracking_number: "4PX1CN" },
+                shipment_weight: { value: 5, unit: "lb" },
+                aftership_estimated_delivery_date: { estimated_delivery_date: "2026-10-06" },
+              },
+            ],
+          },
+        },
+      }),
+    });
+    const result = await client.track("4PX1CN", "4PX");
+    expect(result.handoff).toBeNull();
+    expect(result.facts).toMatchObject({
+      lastMile: null,
+      weightKg: null,
+      estimatedDelivery: { from: new Date("2026-10-06"), to: null, source: "AfterShip" },
+    });
   });
 
   it("creates the tracking the first time", async () => {
@@ -324,6 +560,15 @@ describe("HTTP failures", () => {
     await expect(
       adapterFor({ code: "4PX", adapter: "17track" }, { env: {} }).fetchEvents("x"),
     ).rejects.toThrow("SEVENTEEN_TRACK_API_KEY is not set");
+  });
+});
+
+describe("localOffsetFor", () => {
+  it("uses Japan time for Japanese carriers and places, China time for 4PX, UTC otherwise", () => {
+    expect(localOffsetFor("SAGAWA")).toBe("+09:00");
+    expect(localOffsetFor("4PX", "Narita Airport")).toBe("+09:00");
+    expect(localOffsetFor("4PX", "Shenzhen")).toBe("+08:00");
+    expect(localOffsetFor(null, null)).toBe("Z");
   });
 });
 

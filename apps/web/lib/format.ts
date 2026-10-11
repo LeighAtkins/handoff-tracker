@@ -84,3 +84,47 @@ export function nowForInput(now = new Date(), zone = timeZone): string {
     .format(now)
     .replace(" ", "T");
 }
+
+const dayMonth = new Intl.DateTimeFormat("en-GB", { timeZone, day: "numeric", month: "short" });
+const weekdayDayMonth = new Intl.DateTimeFormat("en-GB", {
+  timeZone,
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+
+/** "14 Oct": for axes and compact lists. */
+export function formatDate(date: Date | null | undefined): string {
+  return date ? dayMonth.format(date) : "—";
+}
+
+/** "Wed 14 Oct": for delivery estimates, where the weekday matters to customers. */
+export function formatDay(date: Date | null | undefined): string {
+  return date ? weekdayDayMonth.format(date) : "—";
+}
+
+export interface DurationStrings {
+  lessThanHour: string;
+  hours: (n: number) => string;
+  days: (n: string) => string;
+}
+
+/** Hours under two days read as hours ("30 h"); longer as days ("2.4 days"). */
+export function formatDuration(hours: number, strings: DurationStrings): string {
+  if (hours < 1) return strings.lessThanHour;
+  if (hours < 48) return strings.hours(Math.round(hours));
+  return strings.days((hours / 24).toFixed(1));
+}
+
+export function formatPercent(ratio: number): string {
+  return `${Math.round(ratio * 100)}%`;
+}
+
+/**
+ * Carriers' own public tracking pages. The app links to them so staff can check by hand; it never
+ * reads them (ADR-0001: no scraping). Deep links are not used because they are undocumented.
+ */
+export const TRACKING_PAGES: Record<string, string> = {
+  "4PX": "https://track.4px.com/",
+  SAGAWA: "https://www.sagawa-exp.co.jp/",
+};

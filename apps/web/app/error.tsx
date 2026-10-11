@@ -35,7 +35,10 @@ export default function Error({
       <h1 className="text-2xl font-semibold">{t.title}</h1>
       <p className="mt-2 text-zinc-600">{t.help}</p>
       {error.digest && <p className="mt-1 font-mono text-xs text-zinc-400">ref {error.digest}</p>}
-      <button onClick={reset} className="mt-4 rounded bg-zinc-900 px-3 py-1.5 text-sm text-white">
+      <button
+        onClick={reset}
+        className="mt-4 rounded-lg bg-teal-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-800"
+      >
         {t.retry}
       </button>
     </div>
