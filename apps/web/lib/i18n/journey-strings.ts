@@ -10,7 +10,7 @@ type ProblemAction = (carrier: string, number: string) => string;
 export const enJourney = {
   quickTrack: {
     label: "Track a parcel",
-    placeholder: "4PX or Sagawa number",
+    placeholder: "Any tracking number",
     go: "Track",
   },
   duration: {
@@ -23,6 +23,9 @@ export const enJourney = {
     SAGAWA: "Sagawa",
     YAMATO: "Yamato",
     JAPANPOST: "Japan Post",
+    SFEXPRESS: "SF Express",
+    FEDEX: "FedEx",
+    TAKESEND: "Takesend",
   } as Record<string, string>,
   severity: {
     critical: "Critical",
@@ -32,9 +35,9 @@ export const enJourney = {
   } satisfies Record<Severity, string>,
   milestones: {
     LABEL_CREATED: "Label created",
-    PICKED_UP: "4PX has it",
+    PICKED_UP: "Carrier has it",
     DEPARTED_ORIGIN: "Left China",
-    ARRIVED_DESTINATION: "Landed in Japan",
+    ARRIVED_DESTINATION: "Landed in destination country",
     CUSTOMS_CLEARED: "Cleared customs",
     HANDED_OFF: "Handed over",
     LAST_MILE_ACCEPTED: "Last mile scanned",
@@ -45,7 +48,7 @@ export const enJourney = {
     LABEL_CREATED: "Label created",
     PICKED_UP: "Picked up",
     DEPARTED_ORIGIN: "Left China",
-    ARRIVED_DESTINATION: "Landed in Japan",
+    ARRIVED_DESTINATION: "Landed in destination country",
     CUSTOMS_CLEARED: "Customs cleared",
     HANDED_OFF: "Handed over",
     LAST_MILE_ACCEPTED: "Last mile scanned",
@@ -61,19 +64,19 @@ export const enJourney = {
     EXCEPTION: "Problem",
   } satisfies Record<Stage, string>,
   segments: {
-    PICKUP: "Label → 4PX pickup",
-    ORIGIN: "4PX in China",
-    LINEHAUL: "Flight to Japan",
-    DESTINATION: "Customs & 4PX Japan",
+    PICKUP: "Label → pickup",
+    ORIGIN: "In China",
+    LINEHAUL: "International flight",
+    DESTINATION: "Customs & import",
     HANDOFF: "Handoff to last mile",
     LAST_MILE: "Last-mile delivery",
   } satisfies Record<SegmentKey, string>,
   pipeline: {
-    IN_CHINA: "With 4PX in China",
+    IN_CHINA: "In China",
     IN_THE_AIR: "In the air",
-    IN_CUSTOMS: "Landed, clearing",
-    AWAITING_LAST_MILE: "Waiting for Sagawa",
-    WITH_LAST_MILE: "With Sagawa",
+    IN_CUSTOMS: "Landed, clearing customs",
+    AWAITING_LAST_MILE: "Waiting for the last-mile carrier",
+    WITH_LAST_MILE: "With the last-mile carrier",
     OUT_FOR_DELIVERY: "Out for delivery",
   } satisfies Record<PipelineStage, string>,
   insights: {
@@ -88,7 +91,8 @@ export const enJourney = {
       `No carrier has reported this parcel. Flagged as stuck since ${since}.`,
     chaseAction: (carrier: string, number: string) =>
       `Ask ${carrier} where it is (tracking number ${number}).`,
-    checkLabelAction: "Check with the warehouse that the parcel really went to 4PX.",
+    checkLabelAction: (number: string) =>
+      `Check with the warehouse that the parcel was handed to the carrier, and that ${number} is the right tracking number.`,
     waitingTitle: (carrier: string) => `Waiting for ${carrier} to scan it`,
     handedTitle: (carrier: string) => `Handed to ${carrier}`,
     waitingDetail: (hours: string, carrier: string, typical: string | null) =>
@@ -98,12 +102,12 @@ export const enJourney = {
     noNumberDetail:
       "The first carrier says it handed the parcel over, but not to whom or under which number.",
     noNumberAction:
-      "4PX's API reports the last-mile carrier and number (serverName, serverNum); connecting it fills this in.",
+      "Look up the number on the first carrier's site; it usually names the next carrier and its number.",
     problemDetail: (date: string, message: string) => `${date}: “${message}”`,
     problemActions: {
       DELAYED: () => "Nothing to do unless it then goes quiet.",
-      CUSTOMS_HOLD: () =>
-        "Ask 4PX what customs needs; usually the recipient's details or an invoice.",
+      CUSTOMS_HOLD: (carrier, number) =>
+        `Ask ${carrier} what customs needs (${number}); usually the recipient's details or an invoice.`,
       DELIVERY_FAILED: (carrier, number) =>
         `Ask the customer to book a redelivery with ${carrier} (${number}).`,
       ADDRESS_PROBLEM: (carrier, number) =>
@@ -135,7 +139,7 @@ export const enJourney = {
     handoffGap: "Handover → first scan",
     soFar: (hours: string) => `${hours} so far`,
     lastMile: "Last-mile number",
-    plannedNote: "Assigned by 4PX; not handed over yet.",
+    plannedNote: "Assigned by the first carrier; not handed over yet.",
     unknown: "Not known yet",
     expected: "Expected delivery",
     providerEstimate: (source: string) => `${source}'s estimate`,
@@ -175,13 +179,14 @@ export const enJourney = {
     doorToDoorNote: (p80: string) => `median · 80% within ${p80}`,
     onTarget: (days: number) => `Delivered within ${days} days`,
     onTargetNote: (n: number, period: number) => `of ${n} delivered in the last ${period} days`,
-    handoff: "4PX → Sagawa handoff",
-    handoffNote: (pct: string) => `median wait for Sagawa's first scan · ${pct} within a day`,
+    handoff: "Handoff to last mile",
+    handoffNote: (pct: string) =>
+      `median wait for the last-mile carrier's first scan · ${pct} within a day`,
     pipelineTitle: "Where open parcels are now",
     pipelineCaption: "Each open parcel at the furthest milestone it has reached.",
     onTrack: "On track",
     withProblem: "Open problem",
-    gapTitle: "Wait for Sagawa's first scan after 4PX hands over",
+    gapTitle: "Wait for the last-mile carrier's first scan after the handover",
     gapCaption: (n: number) =>
       `${n} completed handoffs. Long waits are where parcels get lost between carriers.`,
     gapBucket: "Wait",
@@ -202,13 +207,13 @@ export const enJourney = {
     why: "Why",
     howTitle: "How these numbers are worked out",
     howBody:
-      "Every number comes from the tracking events of the parcels in this app, using the same rules as the shipment pages: milestones are classified from 4PX and Sagawa scans, and usual times are medians over completed stages. Nothing is typed in by hand.",
+      "Every number comes from the tracking events of the parcels in this app, using the same rules as the shipment pages: milestones are classified from each carrier's scans, and usual times are medians over completed stages. Nothing is typed in by hand.",
     noData: "Not enough data yet",
   },
   track: {
     title: "Track a parcel",
     intro:
-      "Paste any 4PX or Sagawa number to see the whole journey, the handoff between carriers and what to do next. Nothing gets imported.",
+      "Paste any tracking number (4PX, Sagawa, or the last-mile carrier's) to see the whole journey, the handoff between carriers and what to do next. Nothing gets imported.",
     label: "Tracking number",
     placeholder: "e.g. 4PX3002711212113CN",
     submit: "Track",
@@ -232,6 +237,8 @@ export const enJourney = {
   lookup: {
     sources: {
       "4PX": "4PX API",
+      "4PX_WEB": "4PX tracking site",
+      SAGAWA: "Sagawa inquiry page",
       SHIP24: "Ship24",
       "17TRACK": "17TRACK",
       AFTERSHIP: "AfterShip",
@@ -261,6 +268,14 @@ export const enJourney = {
     noProviderTitle: "No live source connected",
     noProviderBody:
       "Real numbers need 4PX's API or a tracking aggregator key. Until one is set up, try a sample.",
+    offlineTitle: (carrier: string) => `${carrier} can't be checked live`,
+    offlineBody: (carrier: string) =>
+      carrier === "FedEx"
+        ? "FedEx blocks automated lookups, so FedEx parcels are checked by email in batches. This shows the last answer we have."
+        : `${carrier} needs a captcha, so its parcels are checked together in the 9:30 weekday run. This shows the last answer we have.`,
+    offlineLast: (message: string, when: string) => `Last update: ${message} (${when})`,
+    offlineNever: "Not checked yet: it will be included in the next run.",
+    offlineUntracked: "This number isn't in our NOMS orders, so no run checks it.",
     timelineTitle: "Every scan",
     scans: (n: number) => `${n} scans`,
     reportedBy4px: "reported by 4PX",
@@ -279,10 +294,15 @@ export const enJourney = {
     notConnected: "Not connected",
     setIn: (keys: string) => `Set ${keys} in .env`,
     direct: "Direct from the carrier",
+    publicSite: "Carrier's public tracking page",
     aggregator: "Tracking aggregator",
     summaries: {
       "4PX":
         "4PX's own tracking API: every 4PX scan with its official status code, plus the last-mile carrier and its tracking number.",
+      "4PX_WEB":
+        "The page staff check today. No key needed: gives 4PX's scans and the Sagawa number, which Sagawa then confirms. Not an official API, so it can change without notice.",
+      SAGAWA:
+        "Sagawa's own inquiry page (e-customer.sagawa-exp.co.jp/k2k), which stayed up during the October 2026 outage. Every Sagawa scan and the branch that made it, for 60 days after shipping.",
       SHIP24:
         "Follows a parcel across carriers under one number, in one call. Free plan: 10 parcels a month.",
       "17TRACK":
@@ -344,7 +364,7 @@ export const enJourney = {
 export const jaJourney: typeof enJourney = {
   quickTrack: {
     label: "荷物を追跡",
-    placeholder: "4PX・佐川の追跡番号",
+    placeholder: "追跡番号",
     go: "追跡",
   },
   duration: {
@@ -357,6 +377,9 @@ export const jaJourney: typeof enJourney = {
     SAGAWA: "佐川急便",
     YAMATO: "ヤマト運輸",
     JAPANPOST: "日本郵便",
+    SFEXPRESS: "SF Express",
+    FEDEX: "FedEx",
+    TAKESEND: "Takesend",
   },
   severity: {
     critical: "緊急",
@@ -366,9 +389,9 @@ export const jaJourney: typeof enJourney = {
   },
   milestones: {
     LABEL_CREATED: "ラベル作成",
-    PICKED_UP: "4PXが受領",
+    PICKED_UP: "配送業者が受領",
     DEPARTED_ORIGIN: "中国を出発",
-    ARRIVED_DESTINATION: "日本に到着",
+    ARRIVED_DESTINATION: "配達国に到着",
     CUSTOMS_CLEARED: "通関完了",
     HANDED_OFF: "引き渡し",
     LAST_MILE_ACCEPTED: "配送業者が受付",
@@ -379,7 +402,7 @@ export const jaJourney: typeof enJourney = {
     LABEL_CREATED: "ラベル作成",
     PICKED_UP: "受領",
     DEPARTED_ORIGIN: "中国を出発",
-    ARRIVED_DESTINATION: "日本に到着",
+    ARRIVED_DESTINATION: "配達国に到着",
     CUSTOMS_CLEARED: "通関完了",
     HANDED_OFF: "引き渡し",
     LAST_MILE_ACCEPTED: "配送業者が受付",
@@ -395,19 +418,19 @@ export const jaJourney: typeof enJourney = {
     EXCEPTION: "問題発生",
   },
   segments: {
-    PICKUP: "ラベル作成→4PX受領",
-    ORIGIN: "中国の4PX",
-    LINEHAUL: "日本への空輸",
-    DESTINATION: "通関・4PX日本",
+    PICKUP: "ラベル作成→集荷",
+    ORIGIN: "中国国内",
+    LINEHAUL: "国際輸送",
+    DESTINATION: "通関・輸入",
     HANDOFF: "配送業者への引き渡し",
     LAST_MILE: "国内配送",
   },
   pipeline: {
-    IN_CHINA: "中国の4PX",
+    IN_CHINA: "中国国内",
     IN_THE_AIR: "空輸中",
-    IN_CUSTOMS: "日本到着・通関中",
-    AWAITING_LAST_MILE: "佐川の受付待ち",
-    WITH_LAST_MILE: "佐川で輸送中",
+    IN_CUSTOMS: "到着・通関中",
+    AWAITING_LAST_MILE: "配送業者の受付待ち",
+    WITH_LAST_MILE: "配送業者で輸送中",
     OUT_FOR_DELIVERY: "配達中",
   },
   insights: {
@@ -422,7 +445,8 @@ export const jaJourney: typeof enJourney = {
       `どの配送業者からも追跡情報がありません。${since}から停滞として表示しています。`,
     chaseAction: (carrier: string, number: string) =>
       `${carrier}に所在を問い合わせてください（追跡番号 ${number}）。`,
-    checkLabelAction: "荷物が実際に4PXへ渡ったか、倉庫に確認してください。",
+    checkLabelAction: (number: string) =>
+      `荷物が配送業者に渡ったか、追跡番号${number}が正しいかを倉庫に確認してください。`,
     waitingTitle: (carrier: string) => `${carrier}の受付待ち`,
     handedTitle: (carrier: string) => `${carrier}へ引き渡し済み`,
     waitingDetail: (hours: string, carrier: string, typical: string | null) =>
@@ -432,12 +456,12 @@ export const jaJourney: typeof enJourney = {
     noNumberTitle: "国内配送の追跡番号が不明",
     noNumberDetail: "引き渡し済みと表示されていますが、引き渡し先の業者と追跡番号がわかりません。",
     noNumberAction:
-      "4PXのAPIは国内配送業者と追跡番号（serverName・serverNum）を返します。接続すれば自動で表示されます。",
+      "最初の配送業者のサイトで番号を調べてください。通常、次の配送業者と追跡番号が載っています。",
     problemDetail: (date: string, message: string) => `${date}：「${message}」`,
     problemActions: {
       DELAYED: () => "この後に動きが止まらない限り、対応は不要です。",
-      CUSTOMS_HOLD: () =>
-        "税関が何を求めているか4PXに確認してください（受取人情報やインボイスが多いです）。",
+      CUSTOMS_HOLD: (carrier, number) =>
+        `税関が何を求めているか${carrier}に確認してください（${number}）。受取人情報やインボイスが多いです。`,
       DELIVERY_FAILED: (carrier, number) =>
         `お客様に${carrier}への再配達依頼をお願いしてください（${number}）。`,
       ADDRESS_PROBLEM: (carrier, number) =>
@@ -469,7 +493,7 @@ export const jaJourney: typeof enJourney = {
     handoffGap: "引き渡し→受付",
     soFar: (hours: string) => `${hours}経過`,
     lastMile: "国内配送の追跡番号",
-    plannedNote: "4PXが割り当て済み（まだ引き渡し前）。",
+    plannedNote: "最初の配送業者が割り当て済み（まだ引き渡し前）。",
     unknown: "未判明",
     expected: "お届け予定",
     providerEstimate: (source: string) => `${source}の予測`,
@@ -508,13 +532,13 @@ export const jaJourney: typeof enJourney = {
     doorToDoorNote: (p80: string) => `中央値・8割が${p80}以内`,
     onTarget: (days: number) => `${days}日以内の配達`,
     onTargetNote: (n: number, period: number) => `直近${period}日に配達した${n}件のうち`,
-    handoff: "4PX→佐川の引き渡し",
-    handoffNote: (pct: string) => `佐川の受付までの中央値・${pct}が1日以内`,
+    handoff: "国内配送への引き渡し",
+    handoffNote: (pct: string) => `国内配送業者の受付までの中央値・${pct}が1日以内`,
     pipelineTitle: "配送中の荷物の現在地",
     pipelineCaption: "各荷物が到達した最も先の地点ごとの件数。",
     onTrack: "順調",
     withProblem: "問題あり",
-    gapTitle: "4PXの引き渡しから佐川の受付までの時間",
+    gapTitle: "引き渡しから国内配送業者の受付までの時間",
     gapCaption: (n: number) =>
       `完了した引き渡し${n}件。待ち時間が長いほど、業者間で荷物が行方不明になりやすくなります。`,
     gapBucket: "待ち時間",
@@ -534,13 +558,13 @@ export const jaJourney: typeof enJourney = {
     why: "理由",
     howTitle: "数値の算出方法",
     howBody:
-      "すべての数値は、このアプリで追跡している荷物の追跡情報から、出荷ページと同じルールで算出しています。4PXと佐川のスキャンから到達地点を判定し、通常の所要時間は完了した区間の中央値です。手入力の数値はありません。",
+      "すべての数値は、このアプリで追跡している荷物の追跡情報から、出荷ページと同じルールで算出しています。各配送業者のスキャンから到達地点を判定し、通常の所要時間は完了した区間の中央値です。手入力の数値はありません。",
     noData: "データ不足",
   },
   track: {
     title: "荷物を追跡",
     intro:
-      "4PXまたは佐川の追跡番号を入力すると、全体の配送状況、業者間の引き渡し、次に取るべき対応がわかります。インポートは不要です。",
+      "追跡番号（4PX・佐川・国内配送業者のもの）を入力すると、全体の配送状況、業者間の引き渡し、次に取るべき対応がわかります。インポートは不要です。",
     label: "追跡番号",
     placeholder: "例：4PX3002711212113CN",
     submit: "追跡",
@@ -564,6 +588,8 @@ export const jaJourney: typeof enJourney = {
   lookup: {
     sources: {
       "4PX": "4PX API",
+      "4PX_WEB": "4PX追跡サイト",
+      SAGAWA: "佐川急便 お荷物問い合わせ",
       SHIP24: "Ship24",
       "17TRACK": "17TRACK",
       AFTERSHIP: "AfterShip",
@@ -593,6 +619,14 @@ export const jaJourney: typeof enJourney = {
     noProviderTitle: "データ連携が未設定です",
     noProviderBody:
       "実際の番号を調べるには、4PXのAPIまたは追跡サービスのキーが必要です。設定されるまではサンプルをお試しください。",
+    offlineTitle: (carrier: string) => `${carrier}はリアルタイムで確認できません`,
+    offlineBody: (carrier: string) =>
+      carrier === "FedEx"
+        ? "FedExは自動検索を受け付けないため、メールでまとめて確認しています。最新の確認結果を表示しています。"
+        : `${carrier}は画像認証が必要なため、平日9:30の確認でまとめて調べています。最新の確認結果を表示しています。`,
+    offlineLast: (message: string, when: string) => `最新の情報：${message}（${when}）`,
+    offlineNever: "まだ確認されていません。次回の確認で調べます。",
+    offlineUntracked: "この番号はNOMSの注文にないため、定期確認の対象外です。",
     timelineTitle: "すべての追跡情報",
     scans: (n: number) => `${n}件`,
     reportedBy4px: "4PXからの報告",
@@ -611,10 +645,15 @@ export const jaJourney: typeof enJourney = {
     notConnected: "未接続",
     setIn: (keys: string) => `.env に ${keys} を設定`,
     direct: "配送業者から直接",
+    publicSite: "配送業者の公開追跡ページ",
     aggregator: "追跡サービス",
     summaries: {
       "4PX":
         "4PX公式の追跡API。4PXのすべてのスキャンを公式ステータスコード付きで取得でき、国内配送業者とその追跡番号もわかります。",
+      "4PX_WEB":
+        "現在スタッフが確認しているページ。キー不要で、4PXのスキャンと佐川の追跡番号を取得し、佐川側で番号を確認します。公式APIではないため、予告なく変わる可能性があります。",
+      SAGAWA:
+        "佐川急便のお荷物問い合わせサービス（e-customer.sagawa-exp.co.jp/k2k）。2026年10月の障害中も利用できました。出荷から60日間、すべてのスキャンと担当営業所がわかります。",
       SHIP24: "1つの番号で業者をまたいで追跡。無料プランは月10件まで。",
       "17TRACK":
         "番号を登録し、数分後に結果を取得。新規アカウントは初回のみ200件無料、その後は有料。",

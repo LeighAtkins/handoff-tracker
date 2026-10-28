@@ -42,7 +42,7 @@ export function describeInsight(
         return {
           title: i.nothingScannedTitle,
           detail: i.nothingScannedDetail(since),
-          action: i.checkLabelAction,
+          action: i.checkLabelAction(trackingNumber),
         };
       return {
         title: i.stuckTitle(quietDays),

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { loadBenchmarks, shipmentJourney } from "@handoff/app";
+import { DEFAULT_STUCK_RULES } from "@handoff/domain";
 import { getPrisma, shipmentAggregateInclude } from "@handoff/db";
 import { requireUser } from "@/lib/auth/session";
 import { LastChecked } from "@/components/last-checked";
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BUCKETS = [
-  { label: "3–4", min: 0, max: 4 },
+  { label: "2–4", min: 0, max: 4 },
   { label: "5–7", min: 5, max: 7 },
   { label: "8–14", min: 8, max: 14 },
   { label: "15+", min: 15, max: Infinity },
@@ -27,13 +28,20 @@ export default async function StuckPage() {
   const [t, ago] = await Promise.all([getT(), getAgo()]);
   const now = new Date();
   const prisma = getPrisma();
-  const [stuck, benchmarks] = await Promise.all([
+  const [stuck, benchmarks, notChecked] = await Promise.all([
     prisma.shipment.findMany({
       where: { stuckSince: { not: null } },
       include: { ...shipmentAggregateInclude, order: true },
     }),
     loadBenchmarks(prisma, now),
+    // Open, nothing scanned yet, still inside the no-scan allowance (DEFAULT_STUCK_RULES).
+    prisma.shipment.findMany({
+      where: { stuckSince: null, lastEventAt: null, status: { notIn: ["DELIVERED", "RETURNED"] } },
+      include: { order: true, legs: { orderBy: { sequence: "asc" } } },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
+  const noScanDays = DEFAULT_STUCK_RULES.quietDaysNoScans ?? DEFAULT_STUCK_RULES.quietDays;
 
   const rows = stuck
     .map((shipment) => {
@@ -184,6 +192,59 @@ export default async function StuckPage() {
             </table>
           </Card>
         </>
+      )}
+
+      {notChecked.length > 0 && (
+        <Card data-testid="not-checked">
+          <CardHeader
+            title={`${t.stuck.notCheckedTitle} (${notChecked.length})`}
+            description={t.stuck.notCheckedHelp}
+          />
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-zinc-100 text-xs text-zinc-500">
+                <tr>
+                  <th className="px-5 py-2.5 font-medium">{t.common.order}</th>
+                  <th className="px-3 py-2.5 font-medium">{t.stuck.waitingOn}</th>
+                  <th className="px-3 py-2.5 font-medium">{t.stuck.shipped}</th>
+                  <th className="px-5 py-2.5 font-medium">{t.stuck.flagsOn}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {notChecked.map((shipment) => {
+                  const leg = shipment.legs.at(-1)!;
+                  const flagsOn = new Date(shipment.createdAt.getTime() + noScanDays * DAY_MS);
+                  return (
+                    <tr key={shipment.id} className="hover:bg-zinc-50/70">
+                      <td className="px-5 py-3 font-mono">
+                        <Link
+                          href={`/shipments/${shipment.id}`}
+                          className="font-medium underline-offset-2 hover:underline"
+                        >
+                          {shipment.order.sourceOrderNumber}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <CarrierChip code={leg.carrierCode} />
+                          <span className="font-mono text-xs text-zinc-500">
+                            {leg.trackingNumber}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-zinc-600">
+                        {shipment.createdAt.toLocaleDateString("en-CA")}
+                      </td>
+                      <td className="px-5 py-3 whitespace-nowrap text-zinc-600">
+                        {flagsOn.toLocaleDateString("en-CA")}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   );

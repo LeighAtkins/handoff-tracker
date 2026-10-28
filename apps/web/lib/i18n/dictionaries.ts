@@ -42,7 +42,7 @@ export const en = {
   },
   stuck: {
     title: "Stuck shipments",
-    rule: "No new tracking event for 3 days, or 5 days straight after a handoff.",
+    rule: "No new tracking event for 5 days (2 once out for delivery, 5 after a handoff). A parcel with no scans at all gets 7 days before it counts.",
     none: "Nothing is stuck. Every open shipment has moved recently.",
     count: "Stuck",
     afterHandoff: "Quiet after a handoff",
@@ -54,6 +54,11 @@ export const en = {
     waitingOn: "Waiting on",
     daysQuiet: "Days quiet",
     sinceHandoff: "since handoff",
+    notCheckedTitle: "Not checked yet",
+    notCheckedHelp:
+      "No carrier has answered for these yet: usually new labels, or parcels waiting for the 9:30 SF check. They count as stuck only if nothing arrives within 7 days of shipping.",
+    shipped: "Shipped",
+    flagsOn: "Flagged as stuck on",
   },
   shipments: {
     title: "Shipments",
@@ -199,7 +204,7 @@ export const ja: Dictionary = {
   },
   stuck: {
     title: "停滞している出荷",
-    rule: "追跡情報の更新が3日間ない、または引き渡し直後に5日間ないもの。",
+    rule: "追跡情報の更新が5日間ないもの（配達中は2日、引き渡し後は5日）。スキャンが一度もない荷物は出荷から7日後に停滞扱い。",
     none: "停滞している出荷はありません。未完了の出荷はすべて最近動きがあります。",
     count: "停滞",
     afterHandoff: "引き渡し後に動きなし",
@@ -211,6 +216,11 @@ export const ja: Dictionary = {
     waitingOn: "待機先",
     daysQuiet: "停滞日数",
     sinceHandoff: "引き渡し以降",
+    notCheckedTitle: "未確認",
+    notCheckedHelp:
+      "まだどの配送業者からも情報がない荷物です。多くは新しいラベルや、9:30のSF確認待ちの荷物です。出荷から7日以内に情報がなければ停滞扱いになります。",
+    shipped: "出荷日",
+    flagsOn: "停滞扱いになる日",
   },
   shipments: {
     title: "出荷一覧",

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
-  carrierForNumber,
   loadBenchmarks,
   lookupJourney,
   lookupTracking,
@@ -109,7 +108,7 @@ async function Header({
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <CarrierChip code={carrierForNumber(trackingNumber)} />
+          <CarrierChip code={result.carrierCode} />
           <h1 className="font-mono text-2xl font-semibold tracking-tight break-all text-zinc-900">
             {trackingNumber}
           </h1>
@@ -152,6 +151,7 @@ async function Header({
 
 async function NotReady({ result, source }: { result: LookupResult; source: string | null }) {
   const t = await getT();
+  if (result.state === "OFFLINE_CARRIER") return <OfflineCarrier result={result} />;
   const provider = source ?? "";
   const content = {
     PENDING: {
@@ -194,6 +194,30 @@ async function NotReady({ result, source }: { result: LookupResult; source: stri
         </p>
       )}
     </div>
+  );
+}
+
+/** SF Express and FedEx: no live source, so show what the scheduled checks last found. */
+async function OfflineCarrier({ result }: { result: LookupResult }) {
+  const [t, ago] = await Promise.all([getT(), getAgo()]);
+  const carrier = t.carriers[result.carrierCode] ?? result.carrierCode;
+  const last = result.shipment?.lastEvent;
+  return (
+    <Callout severity="info" label={t.severity.info} title={t.lookup.offlineTitle(carrier)}>
+      <p>{t.lookup.offlineBody(carrier)}</p>
+      <p className="mt-2 font-medium">
+        {!result.shipment
+          ? t.lookup.offlineUntracked
+          : last
+            ? t.lookup.offlineLast(last.message, formatDateTime(last.at))
+            : t.lookup.offlineNever}
+      </p>
+      {result.shipment?.lastCheckedAt && (
+        <p className="mt-1 text-xs text-zinc-500">
+          {t.lookup.checked(formatAgo(result.shipment.lastCheckedAt, new Date(), ago))}
+        </p>
+      )}
+    </Callout>
   );
 }
 

@@ -23,7 +23,7 @@ export default async function SourcesPage() {
     <div className="space-y-6">
       <PageHeader title={t.sources.title} description={t.sources.intro} />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" data-testid="providers">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" data-testid="providers">
         {providers.map((provider) => (
           <Card
             key={provider.name}
@@ -35,7 +35,11 @@ export default async function SourcesPage() {
                   {t.lookup.sources[provider.name] ?? provider.name}
                 </h2>
                 <p className="text-xs text-zinc-500">
-                  {provider.name === "4PX" ? t.sources.direct : t.sources.aggregator}
+                  {provider.name === "4PX"
+                    ? t.sources.direct
+                    : provider.publicSite
+                      ? t.sources.publicSite
+                      : t.sources.aggregator}
                 </p>
               </div>
               {provider.configured ? (

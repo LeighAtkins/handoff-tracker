@@ -6,7 +6,7 @@ test("the overview shows where parcels are and who needs chasing today", async (
   await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
   const kpis = page.getByTestId("kpis");
   await expect(kpis).toContainText("Open parcels");
-  await expect(kpis).toContainText("4PX → Sagawa handoff");
+  await expect(kpis).toContainText("Handoff to last mile");
 
   const attention = page.getByTestId("attention");
   await expect(attention).toContainText("Stuck after the handoff");
