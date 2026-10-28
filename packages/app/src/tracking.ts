@@ -4,8 +4,9 @@ import {
   type CarrierAdapter,
   type DetectedHandoff,
   type RawTrackingEvent,
+  type ShipmentFacts,
 } from "@handoff/carriers";
-import type { PrismaClient } from "@handoff/db";
+import { Prisma, type PrismaClient } from "@handoff/db";
 import { refresh } from "./refresh";
 import { writeAudit } from "./audit";
 import { recordHandoffInTx } from "./shipments";
@@ -22,7 +23,13 @@ const DEFAULT_PAUSE_MS = 15 * 60 * 1000;
  */
 export async function ingestLegEvents(
   prisma: PrismaClient,
-  input: { legId: string; events: RawTrackingEvent[]; handoff?: DetectedHandoff | null },
+  input: {
+    legId: string;
+    events: RawTrackingEvent[];
+    handoff?: DetectedHandoff | null;
+    /** Replaces the Leg's stored facts when given; left alone when undefined. */
+    facts?: ShipmentFacts | null;
+  },
   now = new Date(),
 ) {
   return prisma.$transaction(async (tx) => {
@@ -49,7 +56,15 @@ export async function ingestLegEvents(
     });
     await tx.leg.update({
       where: { id: leg.id },
-      data: { lastCheckedAt: now, lastCheckError: null },
+      data: {
+        lastCheckedAt: now,
+        lastCheckError: null,
+        ...(input.facts !== undefined && {
+          facts: input.facts
+            ? (JSON.parse(JSON.stringify(input.facts)) as Prisma.InputJsonValue)
+            : Prisma.DbNull,
+        }),
+      },
     });
 
     let handedOff = false;
@@ -171,7 +186,12 @@ export async function pollDueLegs(
       const events = await adapter.fetchEvents(leg.trackingNumber);
       const result = await ingestLegEvents(
         prisma,
-        { legId: leg.id, events, handoff: adapter.detectHandoff?.(events) },
+        {
+          legId: leg.id,
+          events,
+          handoff: adapter.detectHandoff?.(events),
+          facts: adapter.reportedFacts?.(events),
+        },
         now,
       );
       report.newEvents += result.newEvents;

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "load-noms": "tsx src/load-noms.ts"
   },
   "dependencies": {
     "@handoff/app": "workspace:*",

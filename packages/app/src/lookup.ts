@@ -20,12 +20,21 @@ import {
 import type { LookupState, Prisma, PrismaClient } from "@handoff/db";
 import { writeAudit, type Actor } from "./audit";
 
-export type LookupOutcome = LookupState | "NO_PROVIDER";
+/**
+ * NO_PROVIDER: nothing connected can answer. OFFLINE_CARRIER: the carrier has no source the app
+ * can ask live (SF Express needs a captcha, FedEx answers by email), so only stored checks show.
+ */
+export type LookupOutcome = LookupState | "NO_PROVIDER" | "OFFLINE_CARRIER";
+
+/** Carriers checked outside live lookups: SF by the daily captcha run, FedEx by email. */
+export const OFFLINE_CARRIERS: ReadonlySet<string> = new Set(["SFEXPRESS", "FEDEX"]);
 
 export interface LookupResult {
   trackingNumber: string;
-  /** Who answered: 4PX, SHIP24, 17TRACK, AFTERSHIP or SAMPLE. */
+  /** Who answered: 4PX, 4PX_WEB, SAGAWA, SHIP24, 17TRACK, AFTERSHIP or SAMPLE. */
   provider: string | null;
+  /** The carrier the number belongs to: the tracked leg's when there is one, else a guess. */
+  carrierCode: string;
   state: LookupOutcome;
   fetchedAt: Date | null;
   error: string | null;
@@ -34,7 +43,13 @@ export interface LookupResult {
   facts: ShipmentFacts | null;
   fromCache: boolean;
   /** The tracked Shipment that already uses this number, if any. */
-  shipment: { id: string; orderNumber: string } | null;
+  shipment: {
+    id: string;
+    orderNumber: string;
+    /** The last stored event and check, for carriers that cannot be asked live. */
+    lastEvent: { at: Date; message: string } | null;
+    lastCheckedAt: Date | null;
+  } | null;
 }
 
 /** How long a stored answer is reused before asking the provider again, by outcome. */
@@ -51,8 +66,12 @@ export function normaliseTrackingNumber(input: string): string | null {
   return /^[A-Z0-9]{6,40}$/.test(value) ? value : null;
 }
 
-/** Which carrier a number belongs to. 12-digit numbers are Sagawa's on the routes we use (ADR-0003). */
+/**
+ * Which carrier a number belongs to, from its format alone. 12-digit numbers are Sagawa's on the
+ * routes we use (ADR-0003); FedEx's are also 12 digits, so a tracked leg's carrier wins over this.
+ */
 export function carrierForNumber(trackingNumber: string): string {
+  if (/^SF\d{12,13}$/.test(trackingNumber)) return "SFEXPRESS";
   return /^\d{12}$/.test(trackingNumber) ? "SAGAWA" : "4PX";
 }
 
@@ -63,7 +82,8 @@ interface Candidate {
 
 /**
  * Looks up any tracking number, live, without importing it: sample numbers from the sample
- * journeys, real ones from 4PX's own API first, then the aggregators, in that order. The answer
+ * journeys, real ones from 4PX's own API first, then 4PX's and Sagawa's public tracking pages,
+ * then the aggregators, in that order. The answer
  * is stored so a reload within FRESH_MINUTES costs no API call.
  */
 export async function lookupTracking(
@@ -73,16 +93,22 @@ export async function lookupTracking(
 ): Promise<LookupResult> {
   const now = options.now ?? new Date();
   const trackingNumber = input.trackingNumber;
-  const shipment = await trackedShipment(prisma, trackingNumber);
-  const candidates = options.candidates ?? defaultCandidates(trackingNumber);
+  const tracked = await trackedShipment(prisma, trackingNumber);
+  const shipment = tracked?.shipment ?? null;
+  const carrierCode = tracked?.carrierCode ?? carrierForNumber(trackingNumber);
   const empty = {
     trackingNumber,
+    carrierCode,
     events: [],
     handoff: null,
     facts: null,
     fromCache: false,
     shipment,
   };
+  if (OFFLINE_CARRIERS.has(carrierCode)) {
+    return { ...empty, provider: null, state: "OFFLINE_CARRIER", fetchedAt: null, error: null };
+  }
+  const candidates = options.candidates ?? defaultCandidates(trackingNumber);
   if (!candidates.length) {
     return { ...empty, provider: null, state: "NO_PROVIDER", fetchedAt: null, error: null };
   }
@@ -97,10 +123,10 @@ export async function lookupTracking(
       where: { trackingNumber },
       data: { lookedUpAt: now, lookedUpBy: input.actor },
     });
-    return { ...fromStored(stored), fromCache: true, shipment };
+    return { ...fromStored(stored), carrierCode, fromCache: true, shipment };
   }
 
-  const answer = await askProviders(candidates, trackingNumber);
+  const answer = await askProviders(candidates, trackingNumber, carrierCode);
   const row = {
     provider: answer.provider,
     state: answer.state,
@@ -152,8 +178,7 @@ function defaultCandidates(trackingNumber: string): Candidate[] {
  * after registering, a brand-new Ship24 tracker) makes the lookup PENDING unless a later one
  * already knows the number.
  */
-async function askProviders(candidates: Candidate[], trackingNumber: string) {
-  const carrierCode = carrierForNumber(trackingNumber);
+async function askProviders(candidates: Candidate[], trackingNumber: string, carrierCode: string) {
   let pending: { provider: string; result: AggregatorResult } | null = null;
   let notFound: string | null = null;
   const errors: string[] = [];
@@ -185,10 +210,23 @@ async function askProviders(candidates: Candidate[], trackingNumber: string) {
 async function trackedShipment(prisma: PrismaClient, trackingNumber: string) {
   const leg = await prisma.leg.findFirst({
     where: { trackingNumber },
-    include: { shipment: { include: { order: true } } },
+    include: {
+      shipment: { include: { order: true } },
+      events: { orderBy: { occurredAt: "desc" }, take: 1 },
+    },
     orderBy: { startedAt: "desc" },
   });
-  return leg ? { id: leg.shipmentId, orderNumber: leg.shipment.order.sourceOrderNumber } : null;
+  if (!leg) return null;
+  const last = leg.events[0];
+  return {
+    carrierCode: leg.carrierCode,
+    shipment: {
+      id: leg.shipmentId,
+      orderNumber: leg.shipment.order.sourceOrderNumber,
+      lastEvent: last ? { at: last.occurredAt, message: last.rawMessage } : null,
+      lastCheckedAt: leg.lastCheckedAt,
+    },
+  };
 }
 
 /** Dates become ISO strings in JSON; this reverses it when reading a stored lookup back. */
@@ -216,7 +254,7 @@ function fromStored(row: {
   result: Prisma.JsonValue;
   error: string | null;
   fetchedAt: Date;
-}): Omit<LookupResult, "fromCache" | "shipment"> {
+}): Omit<LookupResult, "carrierCode" | "fromCache" | "shipment"> {
   const result = row.result as StoredResult | null;
   const date = (value: string | null | undefined) => (value ? new Date(value) : null);
   const estimate = result?.facts?.estimatedDelivery;
@@ -258,7 +296,7 @@ export function lookupJourney(
   result: LookupResult,
   now: Date,
 ): { input: JourneyInput; state: ShipmentState } {
-  const firstCarrier = carrierForNumber(result.trackingNumber);
+  const firstCarrier = result.carrierCode;
   const sorted = [...result.events].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
   const stageOf = (e: AttributedEvent, leg: number) =>
     classifyStage(e.carrierCode ?? firstCarrier, e, leg);

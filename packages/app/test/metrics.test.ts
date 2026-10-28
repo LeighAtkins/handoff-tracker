@@ -18,21 +18,21 @@ describe("trialMetrics", () => {
     const b = await createShipment([{ at: day(0), status: "IN_TRANSIT" }]);
     await createShipment([{ at: day(0), status: "DELIVERED" }]);
 
-    // Both open shipments go quiet and become stuck on day 3; the worker notices on day 4.
-    await refreshOpenShipments(prisma, day(4));
+    // Both open shipments go quiet and become stuck on day 5; the worker notices on day 6.
+    await refreshOpenShipments(prisma, day(6));
     await recordWorkerRun(
       prisma,
       { checked: 7, newEvents: 0, handoffs: 0, failures: [], pausedCarriers: [] },
       2,
     );
-    // An operator resolves one of them on day 5.
+    // An operator resolves one of them on day 7.
     await prisma.user.create({ data: { email: "op@example.com", role: "OPERATOR" } });
     await authorizeSignIn(
       prisma,
       { email: "op@example.com", emailVerified: true, method: "dev" },
       {},
     );
-    await markResolved(prisma, { shipmentId: a }, "op@example.com", day(5));
+    await markResolved(prisma, { shipmentId: a }, "op@example.com", day(7));
     await addNote(prisma, { shipmentId: b, text: "Chased Sagawa" }, "op@example.com");
 
     const metrics = await trialMetrics(prisma, {

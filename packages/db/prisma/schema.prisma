@@ -95,6 +95,9 @@ model Leg {
   lastCheckedAt  DateTime?
   /// The error from the last check, or null if it succeeded.
   lastCheckError String?
+  /// What the carrier said about the parcel beyond its scans, from the last check: the last-mile
+  /// carrier and number, its ETA. Shape: ShipmentFacts in @handoff/carriers (dates as ISO strings).
+  facts          Json?
   events         TrackingEvent[]
   handoffsFrom   Handoff[]       @relation("HandoffFrom")
   handoffsTo     Handoff[]       @relation("HandoffTo")

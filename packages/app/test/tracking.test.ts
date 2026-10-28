@@ -190,8 +190,8 @@ describe("ingestLegEvents", () => {
 describe("refreshOpenShipments", () => {
   it("flags shipments that went quiet just because time passed", async () => {
     const id = await createShipment([{ at: day(0), status: "IN_TRANSIT" }]);
-    expect(await refreshOpenShipments(prisma, day(2))).toEqual({ open: 1, changed: 0 });
-    expect(await refreshOpenShipments(prisma, day(4))).toEqual({ open: 1, changed: 1 });
-    expect((await prisma.shipment.findUniqueOrThrow({ where: { id } })).stuckSince).toEqual(day(3));
+    expect(await refreshOpenShipments(prisma, day(4))).toEqual({ open: 1, changed: 0 });
+    expect(await refreshOpenShipments(prisma, day(6))).toEqual({ open: 1, changed: 1 });
+    expect((await prisma.shipment.findUniqueOrThrow({ where: { id } })).stuckSince).toEqual(day(5));
   });
 });

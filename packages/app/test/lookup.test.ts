@@ -72,12 +72,28 @@ describe("normaliseTrackingNumber", () => {
   it("knows 12-digit numbers are Sagawa's", () => {
     expect(carrierForNumber("900011112222")).toBe("SAGAWA");
     expect(carrierForNumber("4PX3002711212113CN")).toBe("4PX");
+    expect(carrierForNumber("SF5149258526324")).toBe("SFEXPRESS");
   });
 });
 
 describe("lookupTracking", () => {
   const number = "4PX3002711212113CN";
   const actor = "operator@example.com";
+
+  it("does not ask the 4PX sources about an SF Express number", async () => {
+    const fourPx = provider("4PX_WEB", ready);
+    const result = await lookupTracking(
+      prisma,
+      { trackingNumber: "SF5149258526324", actor },
+      { candidates: [fourPx] },
+    );
+    expect(result).toMatchObject({
+      state: "OFFLINE_CARRIER",
+      carrierCode: "SFEXPRESS",
+      shipment: null,
+    });
+    expect(fourPx.calls).toEqual([]);
+  });
 
   it("says so when no provider is connected", async () => {
     const result = await lookupTracking(
@@ -191,7 +207,10 @@ describe("lookupTracking", () => {
       { trackingNumber: leg.trackingNumber, actor },
       { candidates: [provider("4PX", ready)] },
     );
-    expect(result.shipment).toEqual({ id: shipmentId, orderNumber: expect.stringMatching(/^T-/) });
+    expect(result.shipment).toMatchObject({
+      id: shipmentId,
+      orderNumber: expect.stringMatching(/^T-/),
+    });
   });
 
   it("answers sample numbers from the sample journeys", async () => {
@@ -204,6 +223,7 @@ describe("lookupJourney", () => {
   const base: LookupResult = {
     trackingNumber: "4PX3002711212113CN",
     provider: "4PX",
+    carrierCode: "4PX",
     state: "READY",
     fetchedAt: at(200),
     error: null,
