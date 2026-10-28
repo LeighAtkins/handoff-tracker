@@ -95,6 +95,15 @@ describe("classifyStage", () => {
     expect(classifyStage("YAMATO", ev("", "Delivered"), 2)).toBe("DELIVERED");
   });
 
+  it("reads customs holds and clearance delays from FedEx and Takesend as a customs hold", () => {
+    // Real wording seen in October 2026: FedEx's email replies and Takesend's tracker.
+    expect(classifyStage("FEDEX", ev("", "Clearance delay - Import"))).toBe("CUSTOMS_HOLD");
+    expect(classifyStage("TAKESEND", ev("", "Held by Custom"))).toBe("CUSTOMS_HOLD");
+    expect(classifyStage("FEDEX", ev("", "International shipment release - Import"))).not.toBe(
+      "CUSTOMS_HOLD",
+    );
+  });
+
   it("returns null for anything it does not recognise", () => {
     expect(classifyStage("YAMATO", ev("ZZZ", "Something new"))).toBeNull();
   });

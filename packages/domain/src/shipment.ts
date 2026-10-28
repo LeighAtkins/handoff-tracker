@@ -43,14 +43,32 @@ export interface ShipmentState {
   stuckResolvedAt: Date | null;
 }
 
+/**
+ * How long each stage may go without a new event before the Shipment counts as stuck. Measured on a
+ * month of real Comfort Works parcels (October 2026): international legs routinely go 3-4 days
+ * without a scan over a flight and customs, while a parcel out for delivery should not go quiet.
+ */
 export interface StuckRules {
-  /** Days without a new event before a Shipment counts as stuck. */
+  /** Days without a new event before a Shipment in transit counts as stuck. */
   quietDays: number;
   /** Used instead of quietDays while the receiving carrier has not reported anything since a Handoff. */
   quietDaysAfterHandoff: number;
+  /** Used instead of quietDays once the parcel is out for delivery. Defaults to quietDays. */
+  quietDaysOutForDelivery?: number;
+  /**
+   * Used while nothing has been scanned at all, counted from when the Shipment was created. A
+   * parcel with no scans is usually one no source has answered for yet, not a lost one; until this
+   * runs out it counts as "not checked yet" (see awaitingFirstScan). Defaults to quietDays.
+   */
+  quietDaysNoScans?: number;
 }
 
-export const DEFAULT_STUCK_RULES: StuckRules = { quietDays: 3, quietDaysAfterHandoff: 5 };
+export const DEFAULT_STUCK_RULES: StuckRules = {
+  quietDays: 5,
+  quietDaysAfterHandoff: 5,
+  quietDaysOutForDelivery: 2,
+  quietDaysNoScans: 7,
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -197,6 +215,9 @@ export function recordHandoff(
  */
 function quietPeriod(state: ShipmentState, rules: StuckRules): { since: Date; days: number } {
   const lastEvent = lastEventAt(state);
+  if (!lastEvent) {
+    return { since: state.createdAt, days: rules.quietDaysNoScans ?? rules.quietDays };
+  }
   const handoff = state.handoffs.at(-1);
   if (handoff) {
     const newLegHasReported = state.events.some(
@@ -207,7 +228,23 @@ function quietPeriod(state: ShipmentState, rules: StuckRules): { since: Date; da
       return { since, days: rules.quietDaysAfterHandoff };
     }
   }
-  return { since: lastEvent ?? state.createdAt, days: rules.quietDays };
+  if (currentStatus(state) === "OUT_FOR_DELIVERY") {
+    return { since: lastEvent, days: rules.quietDaysOutForDelivery ?? rules.quietDays };
+  }
+  return { since: lastEvent, days: rules.quietDays };
+}
+
+/**
+ * True for an open Shipment with no events yet that is still inside its no-scan allowance: no
+ * source has answered for it yet. Shown as "not checked yet" rather than stuck.
+ */
+export function awaitingFirstScan(
+  state: ShipmentState,
+  now: Date,
+  rules: StuckRules = DEFAULT_STUCK_RULES,
+): boolean {
+  if (isTerminal(currentStatus(state)) || lastEventAt(state)) return false;
+  return !isStuck(state, now, rules);
 }
 
 /**

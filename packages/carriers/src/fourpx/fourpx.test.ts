@@ -319,3 +319,23 @@ describe("4PX business link codes", () => {
     expect(fourPxStatus("FPX_Z_NEW")).toBeNull();
   });
 });
+
+describe("4PX codes missing from the published table", () => {
+  it("reads routine wording as progress instead of a problem", () => {
+    // Real codes and wording from October 2026 that the family rules used to call failures.
+    expect(fourPxStatus("FPX_D_AOPC", "Arrive in transit center")).toBe("IN_TRANSIT");
+    expect(fourPxStatus("FPX_I_DRR", "Cleared by customs")).toBe("IN_TRANSIT");
+    expect(fourPxStatus("FPX_D_SRC", "Collected from airport terminal")).toBe("IN_TRANSIT");
+    expect(fourPxStatus("FPX_I_CPM", "予備申告控(9)")).toBe("IN_TRANSIT");
+    expect(fourPxStage("FPX_D_AOPC", "Arrive at overseas processing center")).toBeNull();
+  });
+
+  it("still flags unlisted codes whose wording is a problem, and listed codes whatever they say", () => {
+    expect(fourPxStatus("FPX_I_NR", "Import customs clearance not release")).toBe("EXCEPTION");
+    expect(fourPxStatus("FPX_C_CRS", "Hand over to airline failed-customs restrictions")).toBe(
+      "EXCEPTION",
+    );
+    expect(fourPxStatus("FPX_D_ZZZZ", "")).toBe("EXCEPTION");
+    expect(fourPxStage("FPX_D_DDRH", "Arrive somewhere")).toBe("DELIVERY_FAILED");
+  });
+});

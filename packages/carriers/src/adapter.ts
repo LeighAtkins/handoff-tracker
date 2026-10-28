@@ -2,6 +2,8 @@
  * Anti-corruption layer between carriers/aggregators and the Tracking context.
  * Adapters only translate: they never touch the database or decide status transitions.
  */
+import type { ShipmentFacts } from "./aggregators/aggregator";
+
 export interface RawTrackingEvent {
   occurredAt: Date;
   rawStatus: string;
@@ -19,6 +21,8 @@ export interface CarrierAdapter {
   fetchEvents(trackingNumber: string): Promise<RawTrackingEvent[]>;
   /** Optional: some carriers/aggregators report the next carrier's tracking number. */
   detectHandoff?(events: RawTrackingEvent[]): DetectedHandoff | null;
+  /** Optional: what the source said beyond the scans (last-mile carrier, ETA) for this fetch. */
+  reportedFacts?(events: RawTrackingEvent[]): ShipmentFacts | null;
 }
 
 /** Thrown when a carrier or aggregator asks us to slow down (HTTP 429). */

@@ -12,7 +12,7 @@ export type StageRule =
   | { rawStatus: string; stage: Stage }
   | { message: RegExp; stage: Stage }
   /** For code families too large to list. Returns undefined for codes that are not its own. */
-  | { codes: (rawStatus: string) => Stage | null | undefined };
+  | { codes: (rawStatus: string, rawMessage: string) => Stage | null | undefined };
 
 const code = (rawStatus: string, stage: Stage): StageRule => ({ rawStatus, stage });
 
@@ -108,7 +108,8 @@ const ENGLISH: StageRule[] = [
   { message: /returned to (the )?(sender|shipper)|delivered to (the )?sender/i, stage: "RETURNED" },
   { message: /return(ing|ed)? to (the )?(sender|shipper)|being returned/i, stage: "RETURNING" },
   {
-    message: /held by customs|customs (hold|inspection|detention)|detained by customs/i,
+    message:
+      /held by customs?|customs (hold|delay|inspection|detention)|clearance delay|detained by customs/i,
     stage: "CUSTOMS_HOLD",
   },
   {
@@ -211,7 +212,7 @@ function firstMatch(
   const status = event.rawStatus.toLowerCase();
   for (const rule of rules) {
     if ("codes" in rule) {
-      const stage = rule.codes(event.rawStatus);
+      const stage = rule.codes(event.rawStatus, event.rawMessage);
       if (stage !== undefined) return stage;
     } else if ("rawStatus" in rule) {
       if (rule.rawStatus.toLowerCase() === status) return rule.stage;

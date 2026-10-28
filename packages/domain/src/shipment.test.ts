@@ -14,6 +14,7 @@ import {
   markResolved,
   recordHandoff,
   stuckDeadline,
+  awaitingFirstScan,
   stuckSince,
   type EventState,
   type ShipmentState,
@@ -246,15 +247,27 @@ describe("manual override", () => {
 });
 
 describe("stuck detection", () => {
-  it("flags a Shipment with no new event for 3 days", () => {
+  it("flags a Shipment in transit with no new event for 5 days", () => {
     const s = applyEvent(fourPx(), event(1, day(1), "IN_TRANSIT"));
-    expect(isStuck(s, day(3.9))).toBe(false);
-    expect(stuckSince(s, day(4))).toEqual(day(4));
+    expect(isStuck(s, day(5.9))).toBe(false);
+    expect(stuckSince(s, day(6))).toEqual(day(6));
     expect(isStuck(s, day(10))).toBe(true);
   });
 
-  it("measures from creation when nothing has arrived yet", () => {
-    expect(stuckSince(fourPx(), day(3))).toEqual(day(3));
+  it("flags a parcel out for delivery after 2 quiet days", () => {
+    const s = applyEvent(fourPx(), event(1, day(1), "OUT_FOR_DELIVERY"));
+    expect(isStuck(s, day(2.9))).toBe(false);
+    expect(stuckSince(s, day(3))).toEqual(day(3));
+  });
+
+  it("gives a parcel with no scans 7 days from creation, as 'not checked yet'", () => {
+    expect(awaitingFirstScan(fourPx(), day(6.9))).toBe(true);
+    expect(isStuck(fourPx(), day(6.9))).toBe(false);
+    expect(stuckSince(fourPx(), day(7))).toEqual(day(7));
+    expect(awaitingFirstScan(fourPx(), day(7))).toBe(false);
+    expect(awaitingFirstScan(applyEvent(fourPx(), event(1, day(1), "IN_TRANSIT")), day(2))).toBe(
+      false,
+    );
   });
 
   it("waits 5 days after a Handoff for the receiving carrier", () => {
@@ -268,10 +281,10 @@ describe("stuck detection", () => {
     expect(stuckSince(s, day(9))).toEqual(day(9));
   });
 
-  it("returns to the 3-day rule once the new carrier reports", () => {
+  it("returns to the in-transit rule once the new carrier reports", () => {
     const s = applyEvent(handedOff(), event(2, day(4), "IN_TRANSIT"));
-    expect(isStuck(s, day(6.9))).toBe(false);
-    expect(stuckSince(s, day(7))).toEqual(day(7));
+    expect(isStuck(s, day(8.9))).toBe(false);
+    expect(stuckSince(s, day(9))).toEqual(day(9));
   });
 
   it("uses custom rules", () => {
@@ -297,9 +310,9 @@ describe("stuck detection", () => {
   });
 
   it("says when a quiet Shipment will be flagged, before it happens", () => {
-    // Sagawa has 5 days from the day-3 handoff, then 3 days from its own first scan.
+    // Sagawa has 5 days from the day-3 handoff, then 5 days from its own first scan.
     expect(stuckDeadline(handedOff())).toEqual(day(8));
-    expect(stuckDeadline(applyEvent(handedOff(), event(2, day(4), "IN_TRANSIT")))).toEqual(day(7));
+    expect(stuckDeadline(applyEvent(handedOff(), event(2, day(4), "IN_TRANSIT")))).toEqual(day(9));
     expect(stuckDeadline(applyEvent(fourPx(), event(1, day(0), "DELIVERED")))).toBeNull();
   });
 
@@ -314,11 +327,11 @@ describe("stuck detection", () => {
 describe("markResolved", () => {
   it("clears stuck until a new quiet period passes the threshold", () => {
     let s = applyEvent(fourPx(), event(1, day(0), "IN_TRANSIT"));
-    s = markResolved(s, day(4));
+    s = markResolved(s, day(6));
     expect(isStuck(s, day(20))).toBe(false);
-    s = applyEvent(s, event(1, day(5), "IN_TRANSIT", "moved again"));
-    expect(isStuck(s, day(7.9))).toBe(false);
-    expect(isStuck(s, day(8))).toBe(true);
+    s = applyEvent(s, event(1, day(7), "IN_TRANSIT", "moved again"));
+    expect(isStuck(s, day(11.9))).toBe(false);
+    expect(isStuck(s, day(12))).toBe(true);
   });
 
   it("rejects resolving a Shipment that is not stuck", () => {

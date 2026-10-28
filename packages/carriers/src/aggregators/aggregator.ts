@@ -14,6 +14,10 @@ export interface ShipmentFacts {
   destinationCountry?: string | null;
   /** The last-mile carrier and its number, which some providers know before the handover. */
   lastMile?: { carrierCode: string; trackingNumber: string } | null;
+  /** Who to contact at the last-mile carrier, as the provider gives it. */
+  lastMileContact?: { name: string; website: string | null; details: string | null } | null;
+  /** 4PX's own number, when the number looked up was the last-mile one. */
+  fourPxNumber?: string | null;
   /** The provider's own delivery estimate, if it gives one. */
   estimatedDelivery?: { from: Date | null; to: Date | null; source: string } | null;
   weightKg?: number | null;
@@ -43,7 +47,7 @@ export function carrierCodeFromAggregator(value: string | null | undefined): str
   if (/4px|递四方/i.test(value)) return "4PX";
   if (/sagawa|佐川/i.test(value)) return "SAGAWA";
   if (/yamato|taqbin|ヤマト/i.test(value)) return "YAMATO";
-  if (/japan.?post|jp.?post|日本郵便/i.test(value)) return "JAPANPOST";
+  if (/japan.?post|jp.?post|日本郵便|日本邮政/i.test(value)) return "JAPANPOST";
   return value.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
 }
 
@@ -89,6 +93,7 @@ export function nextCarrierAfter(
  */
 export function createAggregatorAdapter(code: string, client: AggregatorClient): CarrierAdapter {
   const handoffs = new WeakMap<RawTrackingEvent[], DetectedHandoff | null>();
+  const facts = new WeakMap<RawTrackingEvent[], ShipmentFacts | null>();
   return {
     code,
     async fetchEvents(trackingNumber) {
@@ -108,10 +113,14 @@ export function createAggregatorAdapter(code: string, client: AggregatorClient):
       const handoff =
         result.handoff && result.handoff.nextCarrierCode !== code ? result.handoff : null;
       handoffs.set(events, handoff);
+      facts.set(events, result.facts ?? null);
       return events;
     },
     detectHandoff(events) {
       return handoffs.get(events) ?? null;
+    },
+    reportedFacts(events) {
+      return facts.get(events) ?? null;
     },
   };
 }

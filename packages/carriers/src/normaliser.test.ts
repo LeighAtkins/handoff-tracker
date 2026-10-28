@@ -61,6 +61,15 @@ describe("normalise", () => {
     expect(normalise("YAMATO", ev(code))).toBe(status);
   });
 
+  it("treats customs holds and clearance delays as exceptions", () => {
+    expect(normalise("FEDEX", { rawStatus: "", rawMessage: "Clearance delay - Import" })).toBe(
+      "EXCEPTION",
+    );
+    expect(normalise("TAKESEND", { rawStatus: "", rawMessage: "Held by Custom" })).toBe(
+      "EXCEPTION",
+    );
+  });
+
   it("returns null for messages it does not recognise", () => {
     expect(normalise("4PX", ev("ZZZ", "Something new"))).toBeNull();
   });

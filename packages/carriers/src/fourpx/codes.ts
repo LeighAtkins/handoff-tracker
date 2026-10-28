@@ -177,13 +177,33 @@ export function isFourPxCode(rawStatus: string): boolean {
   return CODE.test(rawStatus.toUpperCase());
 }
 
-export function classifyFourPxCode(rawStatus: string): FourPxCode {
+/**
+ * Wording 4PX uses for routine scans. 4PX adds codes that are not in its published table (seen in
+ * October 2026: FPX_D_AOPC "Arrive in transit center", FPX_I_DRR "Cleared by customs", FPX_D_SRC
+ * "Collected from airport terminal", FPX_I_CPM "予備申告控"), and the family rules below would read
+ * every unlisted D code as a failed delivery and every I code as a customs hold.
+ */
+const ROUTINE_WORDING =
+  /^(arriv|depart|collected|cleared|released|in transit|transport|shipment (loaded|arrived)|hand(ed)? over to (the )?(airline|carrier|delivery)|processing|sorted)|予備申告|申告控/i;
+const PROBLEM_WORDING =
+  /fail|not release|held|hold|restrict|exception|absent|attempt|refus|return|damag|lost|counterfeit|delay|unable|insufficient/i;
+
+/**
+ * The message is optional: with it, a code that only a family rule would classify as a problem
+ * counts as progress when 4PX's own wording is routine. Codes in the official table never are.
+ */
+export function classifyFourPxCode(rawStatus: string, rawMessage = ""): FourPxCode {
   const code = rawStatus.toUpperCase();
   const milestone = MILESTONES[code];
   if (milestone) return { kind: "milestone", stage: milestone };
   if (PROGRESS.has(code)) return { kind: "progress" };
-  const problem = PROBLEMS[code] ?? FAMILIES.find(([family]) => family.test(code))?.[1];
-  return problem ? { kind: "problem", stage: problem } : { kind: "unknown" };
+  const listed = PROBLEMS[code];
+  if (listed) return { kind: "problem", stage: listed };
+  const family = FAMILIES.find(([f]) => f.test(code))?.[1];
+  if (!family) return { kind: "unknown" };
+  const message = rawMessage.trim();
+  if (ROUTINE_WORDING.test(message) && !PROBLEM_WORDING.test(message)) return { kind: "progress" };
+  return { kind: "problem", stage: family };
 }
 
 const STAGE_STATUS: Record<Stage, Status> = {
@@ -210,16 +230,16 @@ const STAGE_STATUS: Record<Stage, Status> = {
  * Stage for a 4PX code: undefined when it is not a 4PX code at all (so other rules may try),
  * null when it is one that marks no stage.
  */
-export function fourPxStage(rawStatus: string): Stage | null | undefined {
+export function fourPxStage(rawStatus: string, rawMessage = ""): Stage | null | undefined {
   if (!isFourPxCode(rawStatus)) return undefined;
-  const code = classifyFourPxCode(rawStatus);
+  const code = classifyFourPxCode(rawStatus, rawMessage);
   return code.kind === "milestone" || code.kind === "problem" ? code.stage : null;
 }
 
 /** Status for a 4PX code: undefined when it is not a 4PX code, null when 4PX added a new one. */
-export function fourPxStatus(rawStatus: string): Status | null | undefined {
+export function fourPxStatus(rawStatus: string, rawMessage = ""): Status | null | undefined {
   if (!isFourPxCode(rawStatus)) return undefined;
-  const code = classifyFourPxCode(rawStatus);
+  const code = classifyFourPxCode(rawStatus, rawMessage);
   if (code.kind === "progress") return "IN_TRANSIT";
   return code.kind === "unknown" ? null : STAGE_STATUS[code.stage];
 }

@@ -9,7 +9,7 @@ import { fourPxStatus } from "./fourpx/codes";
 export type MappingRule =
   | { rawStatus: string; status: Status }
   | { message: RegExp; status: Status }
-  | { codes: (rawStatus: string) => Status | null | undefined };
+  | { codes: (rawStatus: string, rawMessage: string) => Status | null | undefined };
 
 /**
  * 17TRACK sub-statuses ("InTransit_CustomsReleased") and AfterShip subtags ("AttemptFail_002"):
@@ -85,7 +85,7 @@ const GENERIC: MappingRule[] = [
   { message: /return(ed)? to sender|returned/i, status: "RETURNED" },
   {
     message:
-      /exception|held by customs|customs hold|failed|undeliverable|address (unknown|problem)/i,
+      /exception|held by customs?|customs (hold|delay)|clearance delay|failed|undeliverable|address (unknown|problem)/i,
     status: "EXCEPTION",
   },
   { message: /out for delivery/i, status: "OUT_FOR_DELIVERY" },
@@ -160,7 +160,7 @@ export function createNormaliser(table: MappingTable = DEFAULT_MAPPINGS) {
     const rules = table[carrierCode] ?? GENERIC;
     for (const rule of rules) {
       if ("codes" in rule) {
-        const status = rule.codes(event.rawStatus);
+        const status = rule.codes(event.rawStatus, event.rawMessage);
         if (status !== undefined) return status;
       } else if ("rawStatus" in rule) {
         if (rule.rawStatus.toLowerCase() === event.rawStatus.toLowerCase()) return rule.status;

@@ -24,7 +24,9 @@
     "worker:loop": "pnpm --filter @handoff/worker start --loop",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
     "trial:aggregators": "pnpm --filter @handoff/carriers trial",
-    "trial:4px": "pnpm --filter @handoff/carriers trial"
+    "trial:4px": "pnpm --filter @handoff/carriers trial",
+    "lastmile": "pnpm --silent --filter @handoff/carriers lastmile",
+    "coverage": "pnpm --silent --filter @handoff/carriers coverage"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

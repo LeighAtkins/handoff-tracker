@@ -9,7 +9,9 @@
   "scripts": {
     "typecheck": "tsc",
     "test": "vitest run",
-    "trial": "tsx scripts/trial.ts"
+    "trial": "tsx scripts/trial.ts",
+    "lastmile": "tsx scripts/lastmile.ts",
+    "coverage": "tsx scripts/coverage.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
